@@ -1,0 +1,6 @@
+# ignore dataset directories too large to push to github
+
+data/dipa/images/
+data/dipa/annotations/
+data/dipa/original\ labels/
+data/laion/
