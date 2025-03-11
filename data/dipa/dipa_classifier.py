@@ -96,7 +96,7 @@ def get_image_dimensions(filename, image_dir=Path("./images")) -> tuple:
     if not isinstance(filename, str):
         filename = str(filename)
 
-    image = cv2.imread(image_dir / filename)
+    image = cv2.imread(str(image_dir / filename))
     height, width, _ = image.shape
 
     return (height, width)
@@ -159,12 +159,11 @@ def save_image_and_txt(
             label_contents = ann_to_string(ann, key, class_map, width, height)
             cur_image_path = cur_image_dir / filename
             cur_label_path = cur_info_dir / label_filename
-            if not cur_image_path.exists():
-                shutil.copy(image_dir / filename, cur_image_dir)
             if cur_label_path.exists():
                 with cur_label_path.open("a") as f:
                     f.write(label_contents)
-            else:
+            elif not cur_image_path.exists():
+                shutil.copy(image_dir / filename, cur_image_dir)
                 cur_label_path.write_text(label_contents)
 
         # now we look through all the annotations by class, skipping any cases where we already have processed the annotation+class
