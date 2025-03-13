@@ -1,0 +1,1 @@
+../../../data/labels/image_pool/picture/VizWiz_train_00001318_rf.txt

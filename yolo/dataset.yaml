@@ -1,0 +1,8 @@
+names:
+  0: face
+  1: license plate
+  2: picture
+  3: street sign
+path: .
+train: images/train
+val: images/val

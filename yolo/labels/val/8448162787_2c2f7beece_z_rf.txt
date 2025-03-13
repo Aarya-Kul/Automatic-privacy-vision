@@ -1,0 +1,1 @@
+../../../data/labels/image_pool/street sign/8448162787_2c2f7beece_z_rf.txt

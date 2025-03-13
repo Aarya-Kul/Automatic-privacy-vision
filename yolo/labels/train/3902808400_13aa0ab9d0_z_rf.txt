@@ -1,0 +1,1 @@
+../../../data/labels/image_pool/license plate/3902808400_13aa0ab9d0_z_rf.txt

@@ -1,0 +1,1 @@
+../../../data/labels/image_pool/picture/2ffcd7c9760e9f80_rf.txt
