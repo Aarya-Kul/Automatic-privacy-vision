@@ -32,7 +32,7 @@ metrics = model.val()
 print(f"mAP@50: {metrics.box.map50:.4f}")
 print(f"mAP@50-95: {metrics.box.map:.4f}")
 print(f"Precision: {metrics.box.p}")
-print(f"Recall: {metrics.box.recall}")
+print(f"Recall: {metrics.box.r}")
 
 results_path = "runs/train/exp*/results.csv"
 
@@ -70,8 +70,8 @@ def plot_metrics(metrics):
     values = [
         metrics.box.map50,
         metrics.box.map,
-        metrics.box.precision,
-        metrics.box.recall,
+        metrics.box.p,
+        metrics.box.r,
     ]
 
     # Create the barplot
