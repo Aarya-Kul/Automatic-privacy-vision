@@ -153,4 +153,4 @@ yaml_data = {
 with open(yaml_path, "w") as f:
     yaml.dump(yaml_data, f)
 
-print("data written to {yaml_path}")
+print(f"data written to {yaml_path}")
