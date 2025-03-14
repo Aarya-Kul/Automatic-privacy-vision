@@ -1,3 +1,5 @@
+from pathlib import Path
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -34,44 +36,63 @@ print(f"mAP@50-95: {metrics.box.map:.4f}")
 print(f"Precision: {metrics.box.p}")
 print(f"Recall: {metrics.box.r}")
 
-results_path = "runs/train/exp*/results.csv"
+# Get the list of files in the directory
+files = list(Path("../runs/detect").iterdir())
+
+# Sort the files by creation time in descending order
+files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
+
+# Check if there are at least two files
+assert len(files_sorted_by_ctime) >= 2, "there may not be a results dir for training"
+
+latest_training_dir = files_sorted_by_ctime[1]
+
+print(
+    f"getting results for the most recently created training results directory: {latest_training_dir}"
+)
+
+results_path = f"{latest_training_dir}/results.csv"
 
 results = pd.read_csv(results_path)
 
 
 # dont know if this will work just GPTed plots
 # Plot training loss curves for Box Loss, Class Loss, and Object Loss
-def plot_losses(results):
-    sns.set(style="darkgrid")
+def plot_losses(results, run):
+    sns.set_theme(style="darkgrid")
 
     plt.figure(figsize=(12, 6))
 
     # Plot each loss type
-    plt.plot(results["epoch"], results["box_loss"], label="Box Loss", color="blue")
-    plt.plot(results["epoch"], results["cls_loss"], label="Class Loss", color="green")
-    plt.plot(results["epoch"], results["obj_loss"], label="Object Loss", color="red")
+    plt.plot(results["epoch"], results["val/box_loss"], label="Box Loss", color="blue")
+    plt.plot(
+        results["epoch"], results["val/cls_loss"], label="Class Loss", color="green"
+    )
+    plt.plot(
+        results["epoch"], results["val/dfl_loss"], label="Object Loss", color="red"
+    )
 
     # Add labels and title
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.title("Training Loss per Epoch")
     plt.legend()
-    plt.show()
+    plt.savefig(f"{run}_loss_fig.png")
 
 
 # Plot the training loss
-plot_losses(results)
+plot_losses(results, latest_training_dir.name)
 
 
 # Plot the evaluation metrics: mAP, Precision, Recall, etc.
-def plot_metrics(metrics):
+def plot_metrics(metrics, run):
     # Define the labels and their corresponding values
-    labels = ["mAP@50", "mAP@50-95", "Precision", "Recall"]
+    labels = ["mAP@50", "mAP@50-95", "Avg. Precision", "Avg. Recall"]
     values = [
         metrics.box.map50,
         metrics.box.map,
-        metrics.box.p,
-        metrics.box.r,
+        np.mean(metrics.box.p),
+        np.mean(metrics.box.r),
     ]
 
     # Create the barplot
@@ -82,8 +103,8 @@ def plot_metrics(metrics):
     plt.title("YOLO Model Performance Metrics")
     plt.ylabel("Score")
     plt.ylim(0, 1)  # Metrics typically range from 0 to 1
-    plt.show()
+    plt.savefig(f"{run}_metrics_fig.png")
 
 
 # Plot the evaluation metrics
-plot_metrics(metrics)
+plot_metrics(metrics, latest_training_dir.name)
