@@ -1,0 +1,1 @@
+../../../data/labels/image_pool/license plate/115151_rf.txt
