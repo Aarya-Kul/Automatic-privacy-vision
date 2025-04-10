@@ -1,3 +1,7 @@
+# TODO:rewrite this to process data from dir parallel to project dir
+#   Add data folders within project to .gitignore, and make sure
+#   this script cretes those folders if they don't exist.
+
 import warnings
 import yaml
 from pathlib import Path
