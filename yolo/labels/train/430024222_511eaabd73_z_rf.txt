@@ -1,1 +1,0 @@
-../../../data/labels/image_pool/street sign/430024222_511eaabd73_z_rf.txt

@@ -1,1 +1,0 @@
-../../../data/labels/image_pool/face/70f4fa357528a5d3.txt
