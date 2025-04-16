@@ -1,1 +1,0 @@
-../../../data/labels/image_pool/license plate/131764_rf.txt

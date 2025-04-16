@@ -1,1 +1,0 @@
-../../../data/labels/image_pool/street sign/106335_rf.txt
