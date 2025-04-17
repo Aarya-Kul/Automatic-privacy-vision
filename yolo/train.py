@@ -16,10 +16,10 @@ hyperparameters = {
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
-model = YOLO("yolov8s.yaml")
+model = YOLO("yolo11n-seg.yaml")
 
 model.train(
-    data="dataset.yaml",
+    data="../../image_privacy_data/data.yaml",
     epochs=hyperparameters["epochs"],
     imgsz=hyperparameters["img_size"],
     batch=hyperparameters["batch_size"],
