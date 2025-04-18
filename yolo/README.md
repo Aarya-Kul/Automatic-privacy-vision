@@ -8,3 +8,9 @@ in `images` and `labels` subdirectories and partitions them into
 If run with data already partitioned in this way, it will redo the partition.
 `yolo_data_setup.py` can be imported as a module, and the `display_counts()` function
 used to display counts for the different object classes.
+
+## Pathing notes
+
+For some reason, I had to use absolute paths in the yaml file for YOLO to work.
+Additionally, be sure to edit .config/Ultralytics/settings.json so that it points at `image_privacy_data`,
+Or alternatively put contents of `image_privacy_data` in default data directory for YOLO.
