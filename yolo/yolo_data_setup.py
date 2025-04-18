@@ -181,61 +181,98 @@ def get_filenames(dir_path, extension: str, exclusions=None) -> list:
     return files
 
 
-path_train = DATA_DIR / "train"
-(path_train / "images").mkdir(parents=True, exist_ok=True)
-(path_train / "labels").mkdir(exist_ok=True)
-path_val = DATA_DIR / "val"
-(path_val / "images").mkdir(parents=True, exist_ok=True)
-(path_val / "labels").mkdir(exist_ok=True)
-path_test = DATA_DIR / "test"
-(path_test / "images").mkdir(parents=True, exist_ok=True)
-(path_test / "labels").mkdir(exist_ok=True)
+def display_counts():
+    """
+    This only works once data has been partitioned into train, val, and test dirs.
+    """
+    path_train = DATA_DIR / "train"
+    path_val = DATA_DIR / "val"
+    path_test = DATA_DIR / "test"
 
-images_files = (
-    get_filenames(path_train / "images", "jpg")
-    + get_filenames(path_val / "images", "jpg")
-    + get_filenames(path_test / "images", "jpg")
-)
-labels_files = (
-    get_filenames(path_train / "labels", "txt")
-    + get_filenames(path_val / "labels", "txt")
-    + get_filenames(path_test / "labels", "txt")
-)
+    images_files = (
+        get_filenames(path_train / "images", "jpg")
+        + get_filenames(path_val / "images", "jpg")
+        + get_filenames(path_test / "images", "jpg")
+    )
+    labels_files = (
+        get_filenames(path_train / "labels", "txt")
+        + get_filenames(path_val / "labels", "txt")
+        + get_filenames(path_test / "labels", "txt")
+    )
 
-images, labels = pair_files(images_files, labels_files)
-train_set, val_set, test_set = split_data(images, labels)
+    images, labels = pair_files(images_files, labels_files)
+    count_dict, object_classes = count_objects(labels)
+    for item in count_dict.items():
+        print(f"Object class counts are \n{CLASS_MAPPINGS[item[0]]}: {item[1]}")
+        label_count = 0
+        for label in labels:
+            with open(label, "r") as f:
+                for line in f:
+                    if int(line.split(" ")[0]) == item[0]:
+                        label_count += 1
+                        break
+        print(f"Over {label_count} distinct images")
 
-train_images = [pair[0] for pair in train_set]
-train_labels = [pair[1] for pair in train_set]
-val_images = [pair[0] for pair in val_set]
-val_labels = [pair[1] for pair in val_set]
-test_images = [pair[0] for pair in test_set]
-test_labels = [pair[1] for pair in test_set]
 
-print(
-    f"There are {len(train_images)} images in the training set, {len(val_images)} in the validation set, and {len(test_images)} in the test set"
-)
+if __name__ == "__main__":
+    src = DATA_DIR / "unpartitioned"
+    path_train = DATA_DIR / "train"
+    (path_train / "images").mkdir(parents=True, exist_ok=True)
+    (path_train / "labels").mkdir(exist_ok=True)
+    path_val = DATA_DIR / "val"
+    (path_val / "images").mkdir(parents=True, exist_ok=True)
+    (path_val / "labels").mkdir(exist_ok=True)
+    path_test = DATA_DIR / "test"
+    (path_test / "images").mkdir(parents=True, exist_ok=True)
+    (path_test / "labels").mkdir(exist_ok=True)
 
-for image_file, label_file in zip(train_images, train_labels):
-    file_stem = image_file.stem
-    new_image_file = DATA_DIR / f"train/images/{file_stem}"
-    new_label_file = DATA_DIR / f"train/labels/{file_stem}"
-    if not new_image_file.exists():
-        image_file.rename(new_image_file)
-        label_file.rename(new_label_file)
+    images_files = (
+        get_filenames(src / "images", "jpg")
+        + get_filenames(path_train / "images", "jpg")
+        + get_filenames(path_val / "images", "jpg")
+        + get_filenames(path_test / "images", "jpg")
+    )
+    labels_files = (
+        get_filenames(src / "labels", "txt")
+        + get_filenames(path_train / "labels", "txt")
+        + get_filenames(path_val / "labels", "txt")
+        + get_filenames(path_test / "labels", "txt")
+    )
 
-for image_file, label_file in zip(val_images, val_labels):
-    file_stem = image_file.stem
-    new_image_file = DATA_DIR / f"val/images/{file_stem}"
-    new_label_file = DATA_DIR / f"val/labels/{file_stem}"
-    if not new_image_file.exists():
-        image_file.rename(new_image_file)
-        label_file.rename(new_label_file)
+    images, labels = pair_files(images_files, labels_files)
+    train_set, val_set, test_set = split_data(images, labels)
 
-for image_file, label_file in zip(test_images, test_labels):
-    file_stem = image_file.stem
-    new_image_file = DATA_DIR / f"test/images/{file_stem}"
-    new_label_file = DATA_DIR / f"test/labels/{file_stem}"
-    if not new_image_file.exists():
-        image_file.rename(new_image_file)
-        label_file.rename(new_label_file)
+    train_images = [pair[0] for pair in train_set]
+    train_labels = [pair[1] for pair in train_set]
+    val_images = [pair[0] for pair in val_set]
+    val_labels = [pair[1] for pair in val_set]
+    test_images = [pair[0] for pair in test_set]
+    test_labels = [pair[1] for pair in test_set]
+
+    print(
+        f"There are {len(train_images)} images in the training set, {len(val_images)} in the validation set, and {len(test_images)} in the test set"
+    )
+
+    for image_file, label_file in zip(train_images, train_labels):
+        file_stem = image_file.stem
+        new_image_file = DATA_DIR / f"train/images/{file_stem}.jpg"
+        new_label_file = DATA_DIR / f"train/labels/{file_stem}.txt"
+        if not new_image_file.exists():
+            image_file.rename(new_image_file)
+            label_file.rename(new_label_file)
+
+    for image_file, label_file in zip(val_images, val_labels):
+        file_stem = image_file.stem
+        new_image_file = DATA_DIR / f"val/images/{file_stem}.jpg"
+        new_label_file = DATA_DIR / f"val/labels/{file_stem}.txt"
+        if not new_image_file.exists():
+            image_file.rename(new_image_file)
+            label_file.rename(new_label_file)
+
+    for image_file, label_file in zip(test_images, test_labels):
+        file_stem = image_file.stem
+        new_image_file = DATA_DIR / f"test/images/{file_stem}.jpg"
+        new_label_file = DATA_DIR / f"test/labels/{file_stem}.txt"
+        if not new_image_file.exists():
+            image_file.rename(new_image_file)
+            label_file.rename(new_label_file)
