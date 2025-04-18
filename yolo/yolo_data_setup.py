@@ -216,6 +216,8 @@ def display_counts():
 
 if __name__ == "__main__":
     src = DATA_DIR / "unpartitioned"
+    (src / "images").mkdir(parents=True, exist_ok=True)
+    (src / "labels").mkdir(exist_ok=True)
     path_train = DATA_DIR / "train"
     (path_train / "images").mkdir(parents=True, exist_ok=True)
     (path_train / "labels").mkdir(exist_ok=True)
