@@ -20,7 +20,7 @@ hyperparameters = {
 model = YOLO("yolo11n-seg.yaml")
 
 model.train(
-    data="../../image_privacy_data/data.yaml",
+    data="../../image_privacy_data/multiclass_data.yaml",
     epochs=hyperparameters["epochs"],
     imgsz=hyperparameters["img_size"],
     batch=hyperparameters["batch_size"],

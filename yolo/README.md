@@ -12,7 +12,8 @@ used to display counts for the different object classes.
 
 ## Data setup for YOLO legible text
 
-Data related to segmenting legible text goes in `image_privacy_data/text`.
+Data related to segmenting legible text goes in `image_privacy_data/text`,
+pulled from [Kaggle](https://www.kaggle.com/datasets/c7934597/cocotext-v20?resource=download).
 
 ## Pathing notes
 
