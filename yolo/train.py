@@ -1,4 +1,5 @@
 from pathlib import Path
+import psutil
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -16,6 +17,12 @@ hyperparameters = {
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
 }
+
+# increase num_workers for DataLoader if sufficient memory is available
+if (psutil.virtual_memory()[0] / 1000 / 1000 / 1000) >= 48:
+    hyperparameters["workers"] = 8
+
+print(f"Using {hyperparameters['workers']} workers for DataLoader")
 
 model = YOLO("yolo11n-seg.yaml")
 
@@ -46,6 +53,17 @@ files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=T
 
 # Check if there are at least two files
 assert len(files_sorted_by_ctime) >= 2, "there may not be a results dir for training"
+
+latest_training_dir = files_sorted_by_ctime[0]
+
+i = 0
+while not (latest_training_dir / "results.csv").exists():
+    i += 1
+    if i == len(files_sorted_by_ctime):
+        print("no results.csv file found in ../runs/segment subdirectory")
+        raise FileNotFoundError
+    latest_training_dir = files_sorted_by_ctime[i]
+
 
 latest_training_dir = files_sorted_by_ctime[1]
 
