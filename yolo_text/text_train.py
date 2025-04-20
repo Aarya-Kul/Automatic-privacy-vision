@@ -27,7 +27,7 @@ if (psutil.virtual_memory()[0] / 1000 / 1000 / 1000) >= 48:
 
 print(f"Using {hyperparameters['workers']} workers for DataLoader")
 
-model = YOLO("yolo11n-seg.yaml")
+model = YOLO("yolo11m.pt")
 
 model.train(
     data="../../image_privacy_data/text_data.yaml",
