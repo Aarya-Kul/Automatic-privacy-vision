@@ -24,9 +24,6 @@ while not (latest_training_dir / "results.csv").exists():
         raise FileNotFoundError
     latest_training_dir = files_sorted_by_ctime[i]
 
-
-latest_training_dir = files_sorted_by_ctime[1]
-
 print(
     f"getting results for the most recently created training results directory: {latest_training_dir}"
 )
