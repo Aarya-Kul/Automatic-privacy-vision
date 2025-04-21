@@ -6,7 +6,7 @@ from ultralytics import YOLO
 import pandas as pd
 
 # Get the list of files in the directory
-files = list(Path("./runs/text/detect").iterdir())
+files = list(Path("../runs/text/detect").iterdir())
 
 # Sort the files by creation time in descending order
 files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
@@ -20,7 +20,7 @@ i = 0
 while not (latest_training_dir / "results.csv").exists():
     i += 1
     if i == len(files_sorted_by_ctime):
-        print("no results.csv file found in ./runs/text subdirectory")
+        print("no results.csv file found in ../runs/text subdirectory")
         raise FileNotFoundError
     latest_training_dir = files_sorted_by_ctime[i]
 
@@ -42,7 +42,7 @@ print(f"Precision: {metrics.box.p}")
 print(f"Recall: {metrics.box.r}")
 
 # Get the list of files in the directory
-files = list(Path("./runs/text").iterdir())
+files = list(Path("../runs/text").iterdir())
 
 # Sort the files by creation time in descending order
 files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)

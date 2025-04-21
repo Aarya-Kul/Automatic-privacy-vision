@@ -16,7 +16,7 @@ hyperparameters = {
     "weight_decay": 0.0005,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
-    "save_dir": "./runs/text",
+    "save_dir": "../runs/text",
 }
 
 Path(hyperparameters["save_dir"]).mkdir(exist_ok=True, parents=True)
@@ -40,6 +40,7 @@ model.train(
     device=hyperparameters["device"],
     workers=hyperparameters["workers"],
     save_dir=hyperparameters["save_dir"],
+    save=True,
 )
 
 metrics = model.val()
@@ -50,7 +51,7 @@ print(f"Precision: {metrics.box.p}")
 print(f"Recall: {metrics.box.r}")
 
 # Get the list of files in the directory
-files = list(Path("./runs/text/detect").iterdir())
+files = list(Path("../runs/text/detect").iterdir())
 
 # Sort the files by creation time in descending order
 files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
