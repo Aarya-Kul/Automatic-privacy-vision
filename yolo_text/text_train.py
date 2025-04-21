@@ -16,7 +16,7 @@ hyperparameters = {
     "weight_decay": 0.0005,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
-    "save_dir": "../runs/text",
+    "save_dir": "./runs/text",
 }
 
 Path(hyperparameters["save_dir"]).mkdir(exist_ok=True, parents=True)
