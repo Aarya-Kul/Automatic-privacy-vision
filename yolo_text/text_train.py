@@ -50,7 +50,7 @@ print(f"Precision: {metrics.box.p}")
 print(f"Recall: {metrics.box.r}")
 
 # Get the list of files in the directory
-files = list(Path("../runs/text/detect").iterdir())
+files = list(Path("./runs/text/detect").iterdir())
 
 # Sort the files by creation time in descending order
 files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
