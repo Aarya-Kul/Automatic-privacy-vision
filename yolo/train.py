@@ -1,4 +1,5 @@
 from pathlib import Path
+import psutil
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -14,12 +15,19 @@ hyperparameters = {
     "momentum": 0.937,
     "weight_decay": 0.0005,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
+    "workers": 4,
 }
 
-model = YOLO("yolov8s.yaml")
+# increase num_workers for DataLoader if sufficient memory is available
+if (psutil.virtual_memory()[0] / 1000 / 1000 / 1000) >= 48:
+    hyperparameters["workers"] = 8
+
+print(f"Using {hyperparameters['workers']} workers for DataLoader")
+
+model = YOLO("yolo11n-seg.yaml")
 
 model.train(
-    data="dataset.yaml",
+    data="../../image_privacy_data/multiclass_data.yaml",
     epochs=hyperparameters["epochs"],
     imgsz=hyperparameters["img_size"],
     batch=hyperparameters["batch_size"],
@@ -27,6 +35,7 @@ model.train(
     momentum=hyperparameters["momentum"],
     weight_decay=hyperparameters["weight_decay"],
     device=hyperparameters["device"],
+    workers=hyperparameters["workers"],
 )
 
 metrics = model.val()
@@ -37,7 +46,7 @@ print(f"Precision: {metrics.box.p}")
 print(f"Recall: {metrics.box.r}")
 
 # Get the list of files in the directory
-files = list(Path("../runs/detect").iterdir())
+files = list(Path("../runs/segment").iterdir())
 
 # Sort the files by creation time in descending order
 files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
@@ -45,7 +54,15 @@ files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=T
 # Check if there are at least two files
 assert len(files_sorted_by_ctime) >= 2, "there may not be a results dir for training"
 
-latest_training_dir = files_sorted_by_ctime[1]
+latest_training_dir = files_sorted_by_ctime[0]
+
+i = 0
+while not (latest_training_dir / "results.csv").exists():
+    i += 1
+    if i == len(files_sorted_by_ctime):
+        print("no results.csv file found in ../runs/segment subdirectory")
+        raise FileNotFoundError
+    latest_training_dir = files_sorted_by_ctime[i]
 
 print(
     f"getting results for the most recently created training results directory: {latest_training_dir}"
