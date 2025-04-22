@@ -21,5 +21,5 @@ def extract_text_from_image(image_path):
     return result  # Return the raw OCR result if needed
 if __name__ == "__main__":
 # Example usage
-    image_path = "/home/htmayer/image_privacy/data/images/image_pool/street sign/3758118486_1bee1c55e5_z_rf.jpg"
+    image_path = "C:/Aarya/umich/eecs545/final_project/image_privacy_data/multiclass/train/images/00a0ab30f64c0096_jpg.rf.9bd0a48d7f0588dde926fe61f5c4b6ce.jpg"
     extract_text_from_image(image_path)
