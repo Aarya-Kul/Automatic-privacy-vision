@@ -1,11 +1,24 @@
 from pathlib import Path
 import psutil
+import argparse
 import numpy as np
+import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 from ultralytics import YOLO
-import pandas as pd
+
+
+msg = """
+    Script for running YOLO training. It default to yolo11n-seg.yaml
+    if no model is specified. To specify YOLO model,
+    pass positional argument, e.g. "yolo11m.pt".
+    """
+
+parser = argparse.ArgumentParser(description=msg)
+parser.add_argument("model", default="yolo11n-seg.yaml")
+args = parser.parse_args()
+yolo_version = args.model
 
 hyperparameters = {
     "epochs": 50,
@@ -24,7 +37,7 @@ if (psutil.virtual_memory()[0] / 1000 / 1000 / 1000) >= 48:
 
 print(f"Using {hyperparameters['workers']} workers for DataLoader")
 
-model = YOLO("yolo11n-seg.yaml")
+model = YOLO(yolo_version)
 
 model.train(
     data="../../image_privacy_data/multiclass_data.yaml",
