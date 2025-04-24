@@ -18,7 +18,10 @@ hyperparameters = {
 }
 
 # Get the list of files in the directory
-files = list(Path("../runs/segment").iterdir())
+model_dirs = list(Path("../runs").iterdir())
+files = []
+for model_dir in model_dirs:
+    files.extend(list(model_dir.iterdir()))
 
 # Sort the files by creation time in descending order
 files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
