@@ -30,7 +30,7 @@ hyperparameters = {
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
     "project": "./runs/",
-    "name": yolo_version,
+    "name": yolo_version.split(".")[0],
 }
 
 # increase num_workers for DataLoader if sufficient memory is available
