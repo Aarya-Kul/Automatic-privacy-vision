@@ -29,6 +29,8 @@ hyperparameters = {
     "weight_decay": 0.0005,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
+    "project": "./runs/",
+    "name": yolo_version,
 }
 
 # increase num_workers for DataLoader if sufficient memory is available
@@ -49,6 +51,8 @@ model.train(
     weight_decay=hyperparameters["weight_decay"],
     device=hyperparameters["device"],
     workers=hyperparameters["workers"],
+    project=hyperparameters["project"],
+    name=hyperparameters["name"],
 )
 
 metrics = model.val()
