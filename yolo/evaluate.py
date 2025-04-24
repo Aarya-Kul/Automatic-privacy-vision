@@ -40,8 +40,6 @@ while not (latest_training_dir / "results.csv").exists():
     latest_training_dir = files_sorted_by_ctime[i]
 
 
-latest_training_dir = files_sorted_by_ctime[1]
-
 print(
     f"getting results for the most recently created training results directory: {latest_training_dir}"
 )
@@ -55,19 +53,6 @@ print(f"mAP@50: {metrics.box.map50:.4f}")
 print(f"mAP@50-95: {metrics.box.map:.4f}")
 print(f"Precision: {metrics.box.p}")
 print(f"Recall: {metrics.box.r}")
-
-# Get the list of files in the directory
-files = list(Path("../runs/segment").iterdir())
-
-# Sort the files by creation time in descending order
-files_sorted_by_ctime = sorted(files, key=lambda f: f.stat().st_ctime, reverse=True)
-
-# Check if there are at least two files
-assert len(files_sorted_by_ctime) >= 2, "there may not be a results dir for training"
-
-print(
-    f"getting results for the most recently created training results directory: {latest_training_dir}"
-)
 
 results_path = f"{latest_training_dir}/results.csv"
 
