@@ -18,7 +18,7 @@ hyperparameters = {
 }
 
 # Get the list of files in the directory
-model_dirs = list(Path("../runs").iterdir())
+model_dirs = list(Path("./runs").iterdir())
 files = []
 for model_dir in model_dirs:
     files.extend(list(model_dir.iterdir()))
