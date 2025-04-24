@@ -14,7 +14,7 @@ MERGE_IOU_THRESHOLD = 0.3
 PRIVACY_SCORE_THRESHOLD = 0.5
 GAUSSIAN_BLUR = True
 
-model = YOLO("runs/segment/train/weights/best.pt")
+model = YOLO("runs/yolo11s/weights/best.pt")
 
 # Load OCR model
 ocr_reader = easyocr.Reader(["en"])
@@ -187,7 +187,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=msg)
     parser.add_argument(
         "input",
-        default="../image_privacy_data/train/images/010d9a7f0d2e0622_jpg.rf.2ebd2db9331fe38d6a3b868fe56d93bb.jpg",
+        nargs="?",
+        default="../image_privacy_data/multiclass/train/images/010d9a7f0d2e0622_jpg.rf.2ebd2db9331fe38d6a3b868fe56d93bb.jpg",
     )
     parser.add_argument("-t", "--target_directory", default=DEST_DIR)
 
