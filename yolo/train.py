@@ -13,12 +13,17 @@ msg = """
     Script for running YOLO training. It default to yolo11n-seg.yaml
     if no model is specified. To specify YOLO model,
     pass positional argument, e.g. "yolo11m.pt".
+    To specify destination, pass another positional argument with path.
+    Note that results are still in ./runs.
     """
 
 parser = argparse.ArgumentParser(description=msg)
-parser.add_argument("model", default="yolo11n-seg.yaml")
+parser.add_argument("model", nargs="?", default="yolo11n-seg.yaml")
+parser.add_argument("dir_name", nargs="?", default=None)
 args = parser.parse_args()
 yolo_version = args.model
+if args.dirname is None:
+    args.dirname = yolo_version.split(".")[0]
 
 hyperparameters = {
     "epochs": 50,
@@ -27,10 +32,13 @@ hyperparameters = {
     "learning_rate": 0.01,
     "momentum": 0.937,
     "weight_decay": 0.0005,
+    "degrees": 0.25,
+    "scale": 0.3,
+    "perspective": 0.0001,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
     "project": "./runs/",
-    "name": yolo_version.split(".")[0],
+    "name": args.dirname,
 }
 
 # increase num_workers for DataLoader if sufficient memory is available
@@ -53,6 +61,9 @@ model.train(
     workers=hyperparameters["workers"],
     project=hyperparameters["project"],
     name=hyperparameters["name"],
+    degrees=hyperparameters["degrees"],
+    scale=hyperparameters["scale"],
+    perspective=hyperparameters["perspective"],
 )
 
 metrics = model.val()

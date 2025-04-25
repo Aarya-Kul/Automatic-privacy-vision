@@ -9,11 +9,11 @@ import numpy as np
 
 np.random.seed(1234)
 
-TRAIN_PART = 0.8
+TRAIN_PART = 0.85
 VAL_PART = 0.1
-TEST_PART = 0.1
+TEST_PART = 0.05
 
-DATA_DIR = Path("../../image_privacy_data")
+DATA_DIR = Path("../../image_privacy_data/multiclass")
 
 CLASS_MAPPINGS = {
     0: "address",
