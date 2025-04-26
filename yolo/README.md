@@ -15,6 +15,15 @@ used to display counts for the different object classes.
 Data related to segmenting legible text goes in `image_privacy_data/text`,
 pulled from [Kaggle](https://www.kaggle.com/datasets/c7934597/cocotext-v20?resource=download).
 
+## training
+
+Train by running `train.py`, which will also evaluate on the val set.
+Run `evaluate.py` to do just evaluation.
+`train.py` takes a positional argument for YOLO model to use,
+defaults to `yolo11n-seg.yaml`.
+
+TODO: experiment with using `yolo11m.pt`, and `yolo11l.pt`.
+
 ## Pathing notes
 
 For some reason, I had to use absolute paths in the yaml file for YOLO to work.

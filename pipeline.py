@@ -1,20 +1,23 @@
 import cv2
 import numpy as np
 from pathlib import Path
+import argparse
 from ultralytics import YOLO
 import easyocr
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
+
+DEST_DIR = Path("./pipeline_out")
 
 ## ALLOW USERS TO SET THESE
 MERGE_IOU_THRESHOLD = 0.3
 PRIVACY_SCORE_THRESHOLD = 0.5
 GAUSSIAN_BLUR = True
 
-model = YOLO("runs/segment/train/weights/best.pt")
+model = YOLO("runs/yolo11s/weights/best.pt")
 
 # Load OCR model
-ocr_reader = easyocr.Reader(['en'])
+ocr_reader = easyocr.Reader(["en"])
 
 
 YOLO_CLASSES = [
@@ -44,8 +47,10 @@ CLASS_FEATURE_WEIGHTS = {
     "street_name": {"ocr_confidence": 0.3, "size": 0.3,"center_focus": 0.2, "base": 0.2},
 }
 
+
 def call_llm_on_text(text):
-    return 0.8 # pretend score returned by local LLM TODO OMKAR FILL THIS
+    return 0.8  # pretend score returned by local LLM TODO OMKAR FILL THIS
+
 
 def compute_privacy_score(poly, texts, image, class_id):
     class_name = YOLO_CLASSES[int(class_id)]
@@ -152,7 +157,7 @@ def blur_regions(image, region_tuples):
             privacy_score = 0.7 * score + 0.3 * llm_score
         else:
             privacy_score = score
-        
+
         if privacy_score > PRIVACY_SCORE_THRESHOLD:
             mask = np.zeros(image.shape[:2], dtype=np.uint8)
             int_coords = np.array(poly.exterior.coords, dtype=np.int32)
@@ -179,7 +184,9 @@ def process_image(image_path, output_path):
     ocr_results = ocr_reader.readtext(image)
 
     # Merge OCR results into segments, track texts
-    merged_regions_with_texts = union_segments_and_boxes(mask_polygons, ocr_results, class_ids)
+    merged_regions_with_texts = union_segments_and_boxes(
+        mask_polygons, ocr_results, class_ids
+    )
 
     # Blur only if sensitive
     output_image = blur_regions(image, merged_regions_with_texts)
@@ -189,6 +196,40 @@ def process_image(image_path, output_path):
 
 
 if __name__ == "__main__":
-    test_image = "C:/Aarya/umich/eecs545/final_project/image_privacy_data/multiclass/train/images/010d9a7f0d2e0622_jpg.rf.2ebd2db9331fe38d6a3b868fe56d93bb.jpg"
-    output_path = "C:/Aarya/umich/eecs545/final_project/image_privacy/blurred_example5.jpg"
-    process_image(test_image, output_path)
+    msg = """
+    Takes a CL argument for the path to the image to process. 
+    TODO: allow directory as target.
+    """
+    parser = argparse.ArgumentParser(description=msg)
+    parser.add_argument(
+        "input",
+        nargs="?",
+        default="../image_privacy_data/multiclass/train/images/010d9a7f0d2e0622_jpg.rf.2ebd2db9331fe38d6a3b868fe56d93bb.jpg",
+    )
+    parser.add_argument("-t", "--target_directory", default=DEST_DIR)
+
+    if not DEST_DIR.exists():
+        DEST_DIR.mkdir(parents=True)
+
+    args = parser.parse_args()
+
+    input = Path(args.input)
+    output_path = args.target_directory
+    supported_types = [".jpg", ".png"]
+
+    # handle directory as input
+    # only iterates through files in directory itself:
+    # does not check subdirectories.
+    if input.is_dir():
+        for dir_item in input.iterdir():
+            if not dir_item.is_file():
+                continue
+            if dir_item.suffix not in supported_types:
+                continue
+            process_image(input, output_path)
+        quit()
+
+    # handle single file input
+    if input.suffix not in supported_types:
+        raise ValueError(f"Unsupported file type: {input.suffix}")
+    process_image(input, output_path)
