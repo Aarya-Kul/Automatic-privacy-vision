@@ -22,8 +22,8 @@ parser.add_argument("model", nargs="?", default="yolo11n-seg.yaml")
 parser.add_argument("dir_name", nargs="?", default=None)
 args = parser.parse_args()
 yolo_version = args.model
-if args.dirname is None:
-    args.dirname = yolo_version.split(".")[0]
+if args.dir_name is None:
+    args.dir_name = yolo_version.split(".")[0]
 
 hyperparameters = {
     "epochs": 50,
