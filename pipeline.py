@@ -30,24 +30,72 @@ YOLO_CLASSES = [
     "street_name",
 ]
 
+# LITERALLY IDK this is just random initial weights
 CLASS_FEATURE_WEIGHTS = {
-    "address": {"text_keywords": 0.4, "ocr_confidence": 0.3, "size": 0.2, "base": 0.1},
-    "advertisement": {"text_keywords": 0.3, "ocr_confidence": 0.3, "size": 0.2, "base": 0.2},
-    "business_sign": {"text_keywords": 0.2, "ocr_confidence": 0.3, "size": 0.3, "base": 0.2},
-    "electronicscreens": {"text_keywords": 0.3, "ocr_confidence": 0.3, "size": 0.2, "base": 0.2},
-    "face": {"blurriness": 0.4, "face_count": 0.3, "center_focus": 0.2, "base": 0.1},
-    "legible_text": {"text_keywords": 0.4, "ocr_confidence": 0.4, "base": 0.2},
-    "license_plate": {"text_keywords": 0.3, "ocr_confidence": 0.3, "size": 0.2, "base": 0.2},
-    "personal_document": {"text_keywords": 0.4, "ocr_confidence": 0.2, "blurriness": 0.2, "size": 0.2},
-    "photo": {"blurriness": 0.3, "face_count": 0.3, "center_focus": 0.2, "base": 0.2},
-    "street_name": {"text_keywords": 0.3, "ocr_confidence": 0.3, "size": 0.3, "base": 0.1},
+    "address": {"ocr_confidence": 0.4, "size": 0.2, "center_focus": 0.2, "base": 0.2},
+    "advertisement": {"ocr_confidence": 0.3, "size": 0.2, "background_complexity": 0.3, "base": 0.2},
+    "business_sign": {"ocr_confidence": 0.3, "size": 0.3, "background_complexity": 0.2, "base": 0.2},
+    "electronicscreens": {"ocr_confidence": 0.3, "background_complexity": 0.3, "size": 0.2, "base": 0.2},
+    "face": {"blurriness": 0.25, "center_focus": 0.25, "background_complexity": 0.2, "base": 0.2, "ocr_confidence": 0.1},
+    "legible_text": {"ocr_confidence": 0.4, "background_complexity": 0.3, "base": 0.3},
+    "license_plate": {"ocr_confidence": 0.3, "size": 0.3, "base": 0.4},
+    "personal_document": {"ocr_confidence": 0.3, "blurriness": 0.2, "size": 0.2, "background_complexity": 0.2, "base": 0.1},
+    "photo": {"blurriness": 0.3, "center_focus": 0.3, "background_complexity": 0.2, "base": 0.2},
+    "street_name": {"ocr_confidence": 0.3, "size": 0.3,"center_focus": 0.2, "base": 0.2},
 }
 
 def call_llm_on_text(text):
     return 0.8 # pretend score returned by local LLM TODO OMKAR FILL THIS
 
-def compute_privacy_score(poly, texts, image, cls_id):
-    pass
+def compute_privacy_score(poly, texts, image, class_id):
+    class_name = YOLO_CLASSES[int(class_id)]
+    weights = CLASS_FEATURE_WEIGHTS.get(class_name, {})
+
+    score = 0.0
+    total_weight = 0.0
+
+    if "base" in weights:
+        score += weights["base"] * 1.0
+        total_weight += weights["base"]
+
+    if "ocr_confidence" in weights:
+        if texts:
+            conf_score = np.mean([conf for _, conf in texts])
+            score += weights["ocr_confidence"] * conf_score
+            total_weight += weights["ocr_confidence"]
+
+    if "blurriness" in weights or "background_complexity" in weights or "center_focus" in weights:
+        x, y, w, h = map(int, poly.bounds)
+        crop = image[y:h, x:w]
+        gray_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+
+        if "blurriness" in weights:
+            lap_var = cv2.Laplacian(gray_crop, cv2.CV_64F).var()
+            blur_score = min(1.0, max(0.0, 1.0 - lap_var / 100.0))
+            score += weights["blurriness"] * blur_score
+            total_weight += weights["blurriness"]
+
+        if "background_complexity" in weights:
+            edges = cv2.Canny(gray_crop, 100, 200)
+            complexity_score = min(1.0, np.mean(edges) / 255.0)
+            score += weights["background_complexity"] * complexity_score
+            total_weight += weights["background_complexity"]
+
+    if "center_focus" in weights:
+        image_center = (image.shape[1] // 2, image.shape[0] // 2)
+        poly_center = poly.centroid
+        distance = np.linalg.norm(np.array([poly_center.x, poly_center.y]) - np.array(image_center))
+        center_focus_score = 1.0 - min(1.0, distance / (max(image.shape[:2]) / 2))
+        score += weights["center_focus"] * center_focus_score
+        total_weight += weights["center_focus"]
+
+    if "size" in weights:
+        size_ratio = poly.area / (image.shape[0] * image.shape[1])
+        score += weights["size"] * min(1.0, size_ratio * 5)
+        total_weight += weights["size"]
+
+    return score / total_weight if total_weight > 0 else 0.0
+
 
 def get_mask_polygon(mask):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -75,7 +123,7 @@ def union_segments_and_boxes(mask_polygons, ocr_results, class_ids):
                 intersection_area = union_poly.intersection(box_poly).area
                 if intersection_area / box_poly.area > MERGE_IOU_THRESHOLD:
                     union_poly = unary_union([union_poly, box_poly])
-                    merged_texts.append(text)
+                    merged_texts.append((text, conf))
                     used_ocr.add(idx)
         updated_polygons.append(((union_poly, merged_texts), class_id))
 
@@ -84,7 +132,7 @@ def union_segments_and_boxes(mask_polygons, ocr_results, class_ids):
         if idx not in used_ocr:
             box_poly = Polygon(bbox)
             if box_poly.is_valid:
-                updated_polygons.append(((box_poly, [text]), 6)) # LEGIBLE TEXT CLASS ASSOCIATED
+                updated_polygons.append(((box_poly, [(text, conf)]), 6)) # LEGIBLE TEXT CLASS ASSOCIATED
 
     return updated_polygons
 
@@ -96,9 +144,10 @@ def blur_regions(image, region_tuples):
             continue
 
         # texts is a list of words OCR picked out within the mask region
-        llm_score = call_llm_on_text(texts) if texts else 0.0
+        llm_score = call_llm_on_text([t for t, _ in texts]) if texts else 0.0
         score = compute_privacy_score(poly, texts, image, class_id)
 
+        # if an llm score then use it. otherwise don't because there was no text for this then
         if llm_score != 0.0:
             privacy_score = 0.7 * score + 0.3 * llm_score
         else:
