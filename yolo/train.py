@@ -35,13 +35,8 @@ hyperparameters = {
     "degrees": 0.25,
     "scale": 0.5,
     "perspective": 0.0001,
-    "hsv_h": 0.015,
-    "hsv_s": 0.7,
-    "hsv_v": 0.4,
-    "translate": 0.1,
-    "fliplr": 0.5,
-    "mosaic": 0.1,
-    "erasing": 0.4,
+    "fliplr": 0.5,  # experimenting against prior baseline
+    "erasing": 0.4,  # experimenting against prior baseline
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
     "project": "./runs/",
