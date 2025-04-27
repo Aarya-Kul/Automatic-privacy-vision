@@ -27,9 +27,9 @@ if args.dir_name is None:
 
 hyperparameters = {
     "epochs": 50,
-    "img_size": 640,
-    "batch_size": 16,
-    "learning_rate": 0.01,
+    "imgsz": 640,  # image size
+    "batch": 16,  # batch size
+    "lr0": 0.01,  # learning_rate
     "momentum": 0.937,
     "weight_decay": 0.0005,
     "degrees": 0.25,
