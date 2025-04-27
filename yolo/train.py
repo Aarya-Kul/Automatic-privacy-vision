@@ -33,8 +33,15 @@ hyperparameters = {
     "momentum": 0.937,
     "weight_decay": 0.0005,
     "degrees": 0.25,
-    "scale": 0.3,
+    "scale": 0.5,
     "perspective": 0.0001,
+    "hsv_h": 0.015,
+    "hsv_s": 0.7,
+    "hsv_v": 0.4,
+    "translate": 0.1,
+    "fliplr": 0.5,
+    "mosaic": 0.1,
+    "erasing": 0.4,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "workers": 4,
     "project": "./runs/",
@@ -49,22 +56,7 @@ print(f"Using {hyperparameters['workers']} workers for DataLoader")
 
 model = YOLO(yolo_version)
 
-model.train(
-    data="../../image_privacy_data/multiclass_data.yaml",
-    epochs=hyperparameters["epochs"],
-    imgsz=hyperparameters["img_size"],
-    batch=hyperparameters["batch_size"],
-    lr0=hyperparameters["learning_rate"],
-    momentum=hyperparameters["momentum"],
-    weight_decay=hyperparameters["weight_decay"],
-    device=hyperparameters["device"],
-    workers=hyperparameters["workers"],
-    project=hyperparameters["project"],
-    name=hyperparameters["name"],
-    degrees=hyperparameters["degrees"],
-    scale=hyperparameters["scale"],
-    perspective=hyperparameters["perspective"],
-)
+model.train(data="../../image_privacy_data/multiclass_data.yaml", **hyperparameters)
 
 metrics = model.val()
 
