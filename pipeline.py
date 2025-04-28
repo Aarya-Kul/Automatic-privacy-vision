@@ -48,7 +48,7 @@ CLASS_FEATURE_WEIGHTS = {
 }
 
 
-def call_llm_on_text(text):
+def call_llm_on_text(text, class_id):
     return 0.8  # pretend score returned by local LLM TODO OMKAR FILL THIS
 
 
@@ -149,7 +149,7 @@ def blur_regions(image, region_tuples):
             continue
 
         # texts is a list of words OCR picked out within the mask region
-        llm_score = call_llm_on_text([t for t, _ in texts]) if texts else 0.0
+        llm_score = call_llm_on_text([t for t, _ in texts], class_id) if texts else 0.0
         score = compute_privacy_score(poly, texts, image, class_id)
 
         # if an llm score then use it. otherwise don't because there was no text for this then
