@@ -37,21 +37,57 @@ YOLO_CLASSES = [
 # LITERALLY IDK this is just random initial weights
 CLASS_FEATURE_WEIGHTS = {
     "address": {"ocr_confidence": 0.4, "size": 0.2, "center_focus": 0.2, "base": 0.2},
-    "advertisement": {"ocr_confidence": 0.3, "size": 0.2, "background_complexity": 0.3, "base": 0.2},
-    "business_sign": {"ocr_confidence": 0.3, "size": 0.3, "background_complexity": 0.2, "base": 0.2},
-    "electronicscreens": {"ocr_confidence": 0.3, "background_complexity": 0.3, "size": 0.2, "base": 0.2},
-    "face": {"blurriness": 0.25, "center_focus": 0.25, "background_complexity": 0.2, "base": 0.2, "ocr_confidence": 0.1},
+    "advertisement": {
+        "ocr_confidence": 0.3,
+        "size": 0.2,
+        "background_complexity": 0.3,
+        "base": 0.2,
+    },
+    "business_sign": {
+        "ocr_confidence": 0.3,
+        "size": 0.3,
+        "background_complexity": 0.2,
+        "base": 0.2,
+    },
+    "electronicscreens": {
+        "ocr_confidence": 0.3,
+        "background_complexity": 0.3,
+        "size": 0.2,
+        "base": 0.2,
+    },
+    "face": {
+        "blurriness": 0.25,
+        "center_focus": 0.25,
+        "background_complexity": 0.2,
+        "base": 0.2,
+        "ocr_confidence": 0.1,
+    },
     "legible_text": {"ocr_confidence": 0.4, "background_complexity": 0.3, "base": 0.3},
     "license_plate": {"ocr_confidence": 0.3, "size": 0.3, "base": 0.4},
-    "personal_document": {"ocr_confidence": 0.3, "blurriness": 0.2, "size": 0.2, "background_complexity": 0.2, "base": 0.1},
-    "photo": {"blurriness": 0.3, "center_focus": 0.3, "background_complexity": 0.2, "base": 0.2},
-    "street_name": {"ocr_confidence": 0.3, "size": 0.3,"center_focus": 0.2, "base": 0.2},
+    "personal_document": {
+        "ocr_confidence": 0.3,
+        "blurriness": 0.2,
+        "size": 0.2,
+        "background_complexity": 0.2,
+        "base": 0.1,
+    },
+    "photo": {
+        "blurriness": 0.3,
+        "center_focus": 0.3,
+        "background_complexity": 0.2,
+        "base": 0.2,
+    },
+    "street_name": {
+        "ocr_confidence": 0.3,
+        "size": 0.3,
+        "center_focus": 0.2,
+        "base": 0.2,
+    },
 }
 
 
 # def call_llm_on_text(text, class_id):
 #     return 0.8  # pretend score returned by local LLM TODO OMKAR FILL THIS
-
 
 
 def call_llm_on_text(text, class_id):
@@ -76,16 +112,19 @@ Only output the number, nothing else.
                 "model": "llama3",
                 "messages": [{"role": "user", "content": prompt}],
                 "options": {"temperature": 0.0},
-                "stream": False
+                "stream": False,
             },
             timeout=10,
         )
         output = response.json()["message"]["content"].strip()
         return float(output)
     except Exception as e:
-        print(f"[Warning] Could not connect to Ollama or parse output. Using dummy score. (Reason: {e})")
+        print(
+            f"[Warning] Could not connect to Ollama or parse output. Using dummy score. (Reason: {e})"
+        )
         return 0.5
-    
+
+
 def compute_privacy_score(poly, texts, image, class_id):
     class_name = YOLO_CLASSES[int(class_id)]
     weights = CLASS_FEATURE_WEIGHTS.get(class_name, {})
@@ -103,7 +142,11 @@ def compute_privacy_score(poly, texts, image, class_id):
             score += weights["ocr_confidence"] * conf_score
             total_weight += weights["ocr_confidence"]
 
-    if "blurriness" in weights or "background_complexity" in weights or "center_focus" in weights:
+    if (
+        "blurriness" in weights
+        or "background_complexity" in weights
+        or "center_focus" in weights
+    ):
         x, y, w, h = map(int, poly.bounds)
         crop = image[y:h, x:w]
         gray_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
@@ -123,7 +166,9 @@ def compute_privacy_score(poly, texts, image, class_id):
     if "center_focus" in weights:
         image_center = (image.shape[1] // 2, image.shape[0] // 2)
         poly_center = poly.centroid
-        distance = np.linalg.norm(np.array([poly_center.x, poly_center.y]) - np.array(image_center))
+        distance = np.linalg.norm(
+            np.array([poly_center.x, poly_center.y]) - np.array(image_center)
+        )
         center_focus_score = 1.0 - min(1.0, distance / (max(image.shape[:2]) / 2))
         score += weights["center_focus"] * center_focus_score
         total_weight += weights["center_focus"]
@@ -171,7 +216,9 @@ def union_segments_and_boxes(mask_polygons, ocr_results, class_ids):
         if idx not in used_ocr:
             box_poly = Polygon(bbox)
             if box_poly.is_valid:
-                updated_polygons.append(((box_poly, [(text, conf)]), 6)) # LEGIBLE TEXT CLASS ASSOCIATED
+                updated_polygons.append(
+                    ((box_poly, [(text, conf)]), 6)
+                )  # LEGIBLE TEXT CLASS ASSOCIATED
 
     return updated_polygons
 
@@ -232,7 +279,7 @@ def process_image(image_path, output_path):
 if __name__ == "__main__":
     msg = """
     Takes a CL argument for the path to the image to process. 
-    TODO: allow directory as target.
+    Path for images to process can be a directory.
     """
     parser = argparse.ArgumentParser(description=msg)
     parser.add_argument(
