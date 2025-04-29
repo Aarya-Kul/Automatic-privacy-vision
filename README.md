@@ -30,3 +30,19 @@ Images were annotated for segmentation with [Roboflow] (<https://app.roboflow.co
 
 To download the DIPA dataset, run the script
 seteup.sh in data/dipa.
+
+## LLM setup
+
+# Install Ollama (you might need to install homebrew)
+brew install ollama
+
+# (If needed) Fix PATH
+echo >> ~/.zprofile
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# Start Ollama server
+ollama serve
+
+# Download llama3 (only need to do this once, or if you want to manually use model)
+ollama run llama3

@@ -4,6 +4,7 @@ from pathlib import Path
 import argparse
 from ultralytics import YOLO
 import easyocr
+import requests
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
@@ -48,10 +49,43 @@ CLASS_FEATURE_WEIGHTS = {
 }
 
 
+# def call_llm_on_text(text, class_id):
+#     return 0.8  # pretend score returned by local LLM TODO OMKAR FILL THIS
+
+
+
 def call_llm_on_text(text, class_id):
-    return 0.8  # pretend score returned by local LLM TODO OMKAR FILL THIS
+    """
+    Calls local Ollama server running 'llama3' to get a privacy score between 0.0 and 1.0.
+    If Ollama is not running, fallback to dummy score.
+    """
+    prompt = f"""
+You are determining the privacy sensitivity of regions detected in images.
 
+Region class: {YOLO_CLASSES[int(class_id)]}
+Detected text: {text}
 
+Output a single number between 0.0 (completely non-sensitive) and 1.0 (extremely private).
+Only output the number, nothing else.
+"""
+
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/chat",
+            json={
+                "model": "llama3",
+                "messages": [{"role": "user", "content": prompt}],
+                "options": {"temperature": 0.0},
+                "stream": False
+            },
+            timeout=10,
+        )
+        output = response.json()["message"]["content"].strip()
+        return float(output)
+    except Exception as e:
+        print(f"[Warning] Could not connect to Ollama or parse output. Using dummy score. (Reason: {e})")
+        return 0.5
+    
 def compute_privacy_score(poly, texts, image, class_id):
     class_name = YOLO_CLASSES[int(class_id)]
     weights = CLASS_FEATURE_WEIGHTS.get(class_name, {})
