@@ -15,7 +15,9 @@ MERGE_IOU_THRESHOLD = 0.3
 PRIVACY_SCORE_THRESHOLD = 0.5
 GAUSSIAN_BLUR = True
 
-model = YOLO("runs/yolo11s/weights/best.pt")
+# model = YOLO("runs/yolo11s/weights/best.pt")
+model = YOLO("best_yolo_weights/best.pt")
+
 
 # Load OCR model
 ocr_reader = easyocr.Reader(["en"])
@@ -37,15 +39,15 @@ YOLO_CLASSES = [
 # LITERALLY IDK this is just random initial weights
 CLASS_FEATURE_WEIGHTS = {
     "address": {"ocr_confidence": 0.4, "size": 0.2, "center_focus": 0.2, "base": 0.2},
-    "advertisement": {"ocr_confidence": 0.3, "size": 0.2, "background_complexity": 0.3, "base": 0.2},
-    "business_sign": {"ocr_confidence": 0.3, "size": 0.3, "background_complexity": 0.2, "base": 0.2},
-    "electronicscreens": {"ocr_confidence": 0.3, "background_complexity": 0.3, "size": 0.2, "base": 0.2},
-    "face": {"blurriness": 0.25, "center_focus": 0.25, "background_complexity": 0.2, "base": 0.2, "ocr_confidence": 0.1},
-    "legible_text": {"ocr_confidence": 0.4, "background_complexity": 0.3, "base": 0.3},
-    "license_plate": {"ocr_confidence": 0.3, "size": 0.3, "base": 0.4},
-    "personal_document": {"ocr_confidence": 0.3, "blurriness": 0.2, "size": 0.2, "background_complexity": 0.2, "base": 0.1},
-    "photo": {"blurriness": 0.3, "center_focus": 0.3, "background_complexity": 0.2, "base": 0.2},
-    "street_name": {"ocr_confidence": 0.3, "size": 0.3,"center_focus": 0.2, "base": 0.2},
+    "advertisement": {"llm": 0.3, "ocr_confidence": 0.3, "size": 0.1, "background_complexity": 0.1, "base": 0.2},
+    "business_sign": {"llm": 0.3, "ocr_confidence": 0.3, "size": 0.1, "background_complexity": 0.1, "base": 0.2},
+    "electronicscreens": {"llm": 0.4, "ocr_confidence": 0.2, "background_complexity": 0.1, "base": 0.3},
+    "face": {"blurriness": 0.25, "center_focus": 0.2, "background_complexity": 0.1, "base": 0.5},
+    "legible_text": {"llm": 0.5, "ocr_confidence": 0.15, "background_complexity": 0.15, "base": 0.2},
+    "license_plate": {"ocr_confidence": 0.3, "size": 0.1, "base": 0.6},
+    "personal_document": {"llm": 0.4, "ocr_confidence": 0.2, "size": 0.1, "base": 0.3},
+    "photo": {"blurriness": 0.3, "center_focus": 0.25, "background_complexity": 0.25, "base": 0.2},
+    "street_name": {"ocr_confidence": 0.4, "size": 0.2,"center_focus": 0.2, "base": 0.3},
 }
 
 
@@ -60,15 +62,14 @@ def call_llm_on_text(text, class_id):
     If Ollama is not running, fallback to dummy score.
     """
     prompt = f"""
-You are determining the privacy sensitivity of regions detected in images.
+        You are determining the privacy sensitivity of the list of text detected in a region of an image.
 
-Region class: {YOLO_CLASSES[int(class_id)]}
-Detected text: {text}
+        Region class: {YOLO_CLASSES[int(class_id)]}
+        Detected text: {text}
 
-Output a single number between 0.0 (completely non-sensitive) and 1.0 (extremely private).
-Only output the number, nothing else.
-"""
-
+        Output a single number between 0.0 (completely non-sensitive text) and 1.0 (extremely private information text) with regards to the class.
+        Only output the number, nothing else.
+        """
     try:
         response = requests.post(
             "http://localhost:11434/api/chat",
@@ -78,7 +79,7 @@ Only output the number, nothing else.
                 "options": {"temperature": 0.0},
                 "stream": False
             },
-            timeout=10,
+            timeout=40,
         )
         output = response.json()["message"]["content"].strip()
         return float(output)
@@ -90,6 +91,8 @@ def compute_privacy_score(poly, texts, image, class_id):
     class_name = YOLO_CLASSES[int(class_id)]
     weights = CLASS_FEATURE_WEIGHTS.get(class_name, {})
 
+    print("\n=== OBJECT 1:", class_name, "===")
+
     score = 0.0
     total_weight = 0.0
 
@@ -100,6 +103,7 @@ def compute_privacy_score(poly, texts, image, class_id):
     if "ocr_confidence" in weights:
         if texts:
             conf_score = np.mean([conf for _, conf in texts])
+            print("CONFIDENCE SCORE:", conf_score)
             score += weights["ocr_confidence"] * conf_score
             total_weight += weights["ocr_confidence"]
 
@@ -110,13 +114,16 @@ def compute_privacy_score(poly, texts, image, class_id):
 
         if "blurriness" in weights:
             lap_var = cv2.Laplacian(gray_crop, cv2.CV_64F).var()
-            blur_score = min(1.0, max(0.0, 1.0 - lap_var / 100.0))
+            lap_var = np.clip(lap_var, 0, 500)
+            blur_score = min(1.0, lap_var / 500.0)
+            print("BLUR SCORE:", blur_score)
             score += weights["blurriness"] * blur_score
             total_weight += weights["blurriness"]
 
         if "background_complexity" in weights:
             edges = cv2.Canny(gray_crop, 100, 200)
             complexity_score = min(1.0, np.mean(edges) / 255.0)
+            print("COMPLEXITY SCORE:", complexity_score)
             score += weights["background_complexity"] * complexity_score
             total_weight += weights["background_complexity"]
 
@@ -125,14 +132,23 @@ def compute_privacy_score(poly, texts, image, class_id):
         poly_center = poly.centroid
         distance = np.linalg.norm(np.array([poly_center.x, poly_center.y]) - np.array(image_center))
         center_focus_score = 1.0 - min(1.0, distance / (max(image.shape[:2]) / 2))
+        print("CENTER FOCUS SCORE:", center_focus_score)
         score += weights["center_focus"] * center_focus_score
         total_weight += weights["center_focus"]
 
     if "size" in weights:
         size_ratio = poly.area / (image.shape[0] * image.shape[1])
+        print("SIZE RATIO:", size_ratio)
         score += weights["size"] * min(1.0, size_ratio * 5)
         total_weight += weights["size"]
+    
+    if "llm" in weights:
+        llm_score = call_llm_on_text([t for t, _ in texts], class_id) if texts else 0.0
+        print("LLM SCORE:", llm_score)
+        score += weights["llm"] * llm_score
+        total_weight += weights["llm"]
 
+    return score
     return score / total_weight if total_weight > 0 else 0.0
 
 
@@ -183,14 +199,8 @@ def blur_regions(image, region_tuples):
             continue
 
         # texts is a list of words OCR picked out within the mask region
-        llm_score = call_llm_on_text([t for t, _ in texts], class_id) if texts else 0.0
-        score = compute_privacy_score(poly, texts, image, class_id)
-
-        # if an llm score then use it. otherwise don't because there was no text for this then
-        if llm_score != 0.0:
-            privacy_score = 0.7 * score + 0.3 * llm_score
-        else:
-            privacy_score = score
+        privacy_score = compute_privacy_score(poly, texts, image, class_id)
+        print("PRIVACY_SCORE:", privacy_score)
 
         if privacy_score > PRIVACY_SCORE_THRESHOLD:
             mask = np.zeros(image.shape[:2], dtype=np.uint8)
@@ -209,12 +219,14 @@ def process_image(image_path, output_path):
     yolo_results = model.predict(image_path, verbose=False)[0]
     mask_polygons = []
     class_ids = []
+    # print(yolo_results)
     for seg, class_id in zip(yolo_results.masks.xy, yolo_results.boxes.cls):
         poly = Polygon(seg)
         if poly.is_valid:
             mask_polygons.append(poly)
             class_ids.append(class_id)
 
+    print(mask_polygons)
     ocr_results = ocr_reader.readtext(image)
 
     # Merge OCR results into segments, track texts
@@ -224,6 +236,9 @@ def process_image(image_path, output_path):
 
     # Blur only if sensitive
     output_image = blur_regions(image, merged_regions_with_texts)
+
+    output_filename = output_path / (image_path.stem + "_blurred" + image_path.suffix)
+    cv2.imwrite(str(output_filename), output_image)
 
     cv2.imwrite(output_path, output_image)
     print(f"Processed image saved to: {output_path}")
@@ -238,7 +253,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "input",
         nargs="?",
-        default="../image_privacy_data/multiclass/train/images/010d9a7f0d2e0622_jpg.rf.2ebd2db9331fe38d6a3b868fe56d93bb.jpg",
+        default="../image_privacy_data/multiclass/val/images/1b8d52cb603f71ad_jpg.rf.4a07f20828a6256402e5151e0db56e5d.jpg",
+        
     )
     parser.add_argument("-t", "--target_directory", default=DEST_DIR)
 
