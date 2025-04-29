@@ -55,7 +55,6 @@ CLASS_FEATURE_WEIGHTS = {
 #     return 0.8  # pretend score returned by local LLM TODO OMKAR FILL THIS
 
 
-
 def call_llm_on_text(text, class_id):
     """
     Calls local Ollama server running 'llama3' to get a privacy score between 0.0 and 1.0.
@@ -77,16 +76,19 @@ def call_llm_on_text(text, class_id):
                 "model": "llama3",
                 "messages": [{"role": "user", "content": prompt}],
                 "options": {"temperature": 0.0},
-                "stream": False
+                "stream": False,
             },
             timeout=40,
         )
         output = response.json()["message"]["content"].strip()
         return float(output)
     except Exception as e:
-        print(f"[Warning] Could not connect to Ollama or parse output. Using dummy score. (Reason: {e})")
+        print(
+            f"[Warning] Could not connect to Ollama or parse output. Using dummy score. (Reason: {e})"
+        )
         return 0.5
-    
+
+
 def compute_privacy_score(poly, texts, image, class_id):
     class_name = YOLO_CLASSES[int(class_id)]
     weights = CLASS_FEATURE_WEIGHTS.get(class_name, {})
@@ -107,7 +109,11 @@ def compute_privacy_score(poly, texts, image, class_id):
             score += weights["ocr_confidence"] * conf_score
             total_weight += weights["ocr_confidence"]
 
-    if "blurriness" in weights or "background_complexity" in weights or "center_focus" in weights:
+    if (
+        "blurriness" in weights
+        or "background_complexity" in weights
+        or "center_focus" in weights
+    ):
         x, y, w, h = map(int, poly.bounds)
         crop = image[y:h, x:w]
         gray_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
@@ -130,7 +136,9 @@ def compute_privacy_score(poly, texts, image, class_id):
     if "center_focus" in weights:
         image_center = (image.shape[1] // 2, image.shape[0] // 2)
         poly_center = poly.centroid
-        distance = np.linalg.norm(np.array([poly_center.x, poly_center.y]) - np.array(image_center))
+        distance = np.linalg.norm(
+            np.array([poly_center.x, poly_center.y]) - np.array(image_center)
+        )
         center_focus_score = 1.0 - min(1.0, distance / (max(image.shape[:2]) / 2))
         print("CENTER FOCUS SCORE:", center_focus_score)
         score += weights["center_focus"] * center_focus_score
@@ -187,7 +195,9 @@ def union_segments_and_boxes(mask_polygons, ocr_results, class_ids):
         if idx not in used_ocr:
             box_poly = Polygon(bbox)
             if box_poly.is_valid:
-                updated_polygons.append(((box_poly, [(text, conf)]), 6)) # LEGIBLE TEXT CLASS ASSOCIATED
+                updated_polygons.append(
+                    ((box_poly, [(text, conf)]), 6)
+                )  # LEGIBLE TEXT CLASS ASSOCIATED
 
     return updated_polygons
 
@@ -247,7 +257,7 @@ def process_image(image_path, output_path):
 if __name__ == "__main__":
     msg = """
     Takes a CL argument for the path to the image to process. 
-    TODO: allow directory as target.
+    Path for images to process can be a directory.
     """
     parser = argparse.ArgumentParser(description=msg)
     parser.add_argument(
