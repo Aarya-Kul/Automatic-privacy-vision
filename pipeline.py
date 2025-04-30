@@ -22,37 +22,69 @@ model = YOLO("best_yolo_weights/best.pt")
 # Load OCR model
 ocr_reader = easyocr.Reader(["en"])
 
-
+# note that class legible_text is not present in yolo model,
+# but extracted from OCR model
 YOLO_CLASSES = [
     "address",
-    "advertisement",
     "business_sign",
     "electronicscreens",
     "face",
-    "legible_text",
     "license_plate",
     "personal_document",
     "photo",
     "street_name",
+    "legible_text",
 ]
 
-# LITERALLY IDK this is just random initial weights
 CLASS_FEATURE_WEIGHTS = {
     "address": {"ocr_confidence": 0.4, "size": 0.2, "center_focus": 0.2, "base": 0.2},
-    "advertisement": {"llm": 0.3, "ocr_confidence": 0.3, "size": 0.1, "background_complexity": 0.1, "base": 0.2},
-    "business_sign": {"llm": 0.3, "ocr_confidence": 0.3, "size": 0.1, "background_complexity": 0.1, "base": 0.2},
-    "electronicscreens": {"llm": 0.4, "ocr_confidence": 0.2, "background_complexity": 0.1, "base": 0.3},
-    "face": {"blurriness": 0.25, "center_focus": 0.2, "background_complexity": 0.1, "base": 0.5},
-    "legible_text": {"llm": 0.5, "ocr_confidence": 0.15, "background_complexity": 0.15, "base": 0.2},
+    "advertisement": {
+        "llm": 0.3,
+        "ocr_confidence": 0.3,
+        "size": 0.1,
+        "background_complexity": 0.1,
+        "base": 0.2,
+    },
+    "business_sign": {
+        "llm": 0.3,
+        "ocr_confidence": 0.3,
+        "size": 0.1,
+        "background_complexity": 0.1,
+        "base": 0.2,
+    },
+    "electronicscreens": {
+        "llm": 0.4,
+        "ocr_confidence": 0.2,
+        "background_complexity": 0.1,
+        "base": 0.3,
+    },
+    "face": {
+        "blurriness": 0.25,
+        "center_focus": 0.2,
+        "background_complexity": 0.1,
+        "base": 0.5,
+    },
+    "legible_text": {
+        "llm": 0.5,
+        "ocr_confidence": 0.15,
+        "background_complexity": 0.15,
+        "base": 0.2,
+    },
     "license_plate": {"ocr_confidence": 0.3, "size": 0.1, "base": 0.6},
     "personal_document": {"llm": 0.4, "ocr_confidence": 0.2, "size": 0.1, "base": 0.3},
-    "photo": {"blurriness": 0.3, "center_focus": 0.25, "background_complexity": 0.25, "base": 0.2},
-    "street_name": {"ocr_confidence": 0.4, "size": 0.2,"center_focus": 0.2, "base": 0.3},
+    "photo": {
+        "blurriness": 0.3,
+        "center_focus": 0.25,
+        "background_complexity": 0.25,
+        "base": 0.2,
+    },
+    "street_name": {
+        "ocr_confidence": 0.4,
+        "size": 0.2,
+        "center_focus": 0.2,
+        "base": 0.3,
+    },
 }
-
-
-# def call_llm_on_text(text, class_id):
-#     return 0.8  # pretend score returned by local LLM TODO OMKAR FILL THIS
 
 
 def call_llm_on_text(text, class_id):
@@ -149,7 +181,7 @@ def compute_privacy_score(poly, texts, image, class_id):
         print("SIZE RATIO:", size_ratio)
         score += weights["size"] * min(1.0, size_ratio * 5)
         total_weight += weights["size"]
-    
+
     if "llm" in weights:
         llm_score = call_llm_on_text([t for t, _ in texts], class_id) if texts else 0.0
         print("LLM SCORE:", llm_score)
@@ -196,9 +228,8 @@ def union_segments_and_boxes(mask_polygons, ocr_results, class_ids):
             box_poly = Polygon(bbox)
             if box_poly.is_valid:
                 updated_polygons.append(
-                    ((box_poly, [(text, conf)]), 6)
-                )  # LEGIBLE TEXT CLASS ASSOCIATED
-
+                    ((box_poly, [(text, conf)]), 8)
+                )  # 8 is label for legible_text class
     return updated_polygons
 
 
@@ -264,7 +295,6 @@ if __name__ == "__main__":
         "input",
         nargs="?",
         default="../image_privacy_data/multiclass/val/images/1b8d52cb603f71ad_jpg.rf.4a07f20828a6256402e5151e0db56e5d.jpg",
-        
     )
     parser.add_argument("-t", "--target_directory", default=DEST_DIR)
 
