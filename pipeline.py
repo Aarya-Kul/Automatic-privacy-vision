@@ -124,11 +124,17 @@ def call_llm_on_text(text, class_id):
         return 0.5
 
 
-def compute_privacy_score(poly, texts, image, class_id):
+def compute_privacy_score(poly, texts, image, class_id, counter: list):
     class_name = YOLO_CLASSES[int(class_id)]
     weights = CLASS_FEATURE_WEIGHTS.get(class_name, {})
 
-    print("\n=== OBJECT 1:", class_name, "===")
+    counter[-1] += 1
+
+    print(
+        f"\n=== IMAGE {len(counter)} OBJECT {counter[-1]}:",
+        class_name,
+        "===",
+    )
 
     score = 0.0
     total_weight = 0.0
@@ -236,14 +242,16 @@ def union_segments_and_boxes(mask_polygons, ocr_results, class_ids):
     return updated_polygons
 
 
-def blur_regions(image, region_tuples):
+def blur_regions(image, region_tuples, counter: list):
     output = image.copy()
     for (poly, texts), class_id in region_tuples:
         if not poly.is_valid:
             continue
 
         # texts is a list of words OCR picked out within the mask region
-        privacy_score = compute_privacy_score(poly, texts, image, class_id)
+        privacy_score = compute_privacy_score(
+            poly, texts, image, class_id, counter=counter
+        )
         print("PRIVACY_SCORE:", privacy_score)
 
         if privacy_score > PRIVACY_SCORE_THRESHOLD:
@@ -273,7 +281,8 @@ def blur_regions(image, region_tuples):
     return output
 
 
-def process_image(image_path, output_path):
+def process_image(image_path, output_path, counter=[]):
+    counter.append(0)
     image = cv2.imread(image_path)
 
     # Step 1: YOLO Segmentation
@@ -298,7 +307,7 @@ def process_image(image_path, output_path):
     )
 
     # Blur only if sensitive
-    output_image = blur_regions(image, merged_regions_with_texts)
+    output_image = blur_regions(image, merged_regions_with_texts, counter)
 
     output_filename = output_path / (image_path.stem + "_blurred" + image_path.suffix)
     cv2.imwrite(str(output_filename), output_image)
@@ -356,6 +365,8 @@ if __name__ == "__main__":
     if not output_path.exists():
         output_path.mkdir(parents=True)
 
+    counter = []
+
     for path in input:
         # handle directory as input
         # only iterates through files in directory itself:
@@ -366,13 +377,13 @@ if __name__ == "__main__":
                     continue
                 if dir_item.suffix not in supported_types:
                     continue
-                process_image(dir_item, output_path)
+                process_image(dir_item, output_path, counter=counter)
             continue
 
         # handle single file path
         if path.suffix not in supported_types:
             raise ValueError(f"Unsupported file type: {path.suffix}")
-        process_image(path, output_path)
+        process_image(path, output_path, counter=counter)
 
         # note: can time this from CLI by running e.g.
         # start=$(date +%s);
