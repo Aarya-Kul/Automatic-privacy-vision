@@ -8,6 +8,8 @@ import requests
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
+from obfuscation.lama_inpaint import inpaint
+
 DEST_DIR = Path("./pipeline_out")
 
 ## ALLOW USERS TO SET THESE
@@ -244,11 +246,17 @@ def blur_regions(image, region_tuples):
         print("PRIVACY_SCORE:", privacy_score)
 
         if privacy_score > PRIVACY_SCORE_THRESHOLD:
-            mask = np.zeros(image.shape[:2], dtype=np.uint8)
-            int_coords = np.array(poly.exterior.coords, dtype=np.int32)
-            cv2.fillPoly(mask, [int_coords], 255)
-            blurred = cv2.GaussianBlur(output, (31, 31), 0)
-            output[mask == 255] = blurred[mask == 255]
+            # select Gaussian blurring or inpainting
+            # always uses blurring for faces
+            if GAUSSIAN_BLUR or YOLO_CLASSES[int(class_id)] == "face":
+                mask = np.zeros(image.shape[:2], dtype=np.uint8)
+                int_coords = np.array(poly.exterior.coords, dtype=np.int32)
+                cv2.fillPoly(mask, [int_coords], 255)
+                obfuscated = cv2.GaussianBlur(output, (31, 31), 0)
+                output[mask == 255] = obfuscated[mask == 255]
+            else:
+                int_coords = np.array(poly.exterior.coords, dtype=np.int32)
+                obfuscated = inpaint(output, [int_coords])
 
     return output
 
@@ -260,12 +268,15 @@ def process_image(image_path, output_path):
     yolo_results = model.predict(image_path, verbose=False)[0]
     mask_polygons = []
     class_ids = []
-    # print(yolo_results)
-    for seg, class_id in zip(yolo_results.masks.xy, yolo_results.boxes.cls):
-        poly = Polygon(seg)
-        if poly.is_valid:
-            mask_polygons.append(poly)
-            class_ids.append(class_id)
+    # conditional avoids throwing an error if there are no yolo predictions
+    if yolo_results:
+        assert yolo_results.masks, f"issue with yolo_results: {yolo_results}"
+        assert yolo_results.boxes, f"issue with yolo_results: {yolo_results}"
+        for seg, class_id in zip(yolo_results.masks.xy, yolo_results.boxes.cls):
+            poly = Polygon(seg)
+            if poly.is_valid:
+                mask_polygons.append(poly)
+                class_ids.append(class_id)
 
     print(mask_polygons)
     ocr_results = ocr_reader.readtext(image)
@@ -281,45 +292,53 @@ def process_image(image_path, output_path):
     output_filename = output_path / (image_path.stem + "_blurred" + image_path.suffix)
     cv2.imwrite(str(output_filename), output_image)
 
-    cv2.imwrite(output_path, output_image)
     print(f"Processed image saved to: {output_path}")
 
 
 if __name__ == "__main__":
-    msg = """
+    msg = f"""
     Takes a CL argument for the path to the image to process. 
     Path for images to process can be a directory.
+    Option -t <path> to specify save directory, defaults to {DEST_DIR}.
+    Option -i to use inpainting instead of Gaussian blurring.
     """
     parser = argparse.ArgumentParser(description=msg)
     parser.add_argument(
-        "input",
-        nargs="?",
-        default="../image_privacy_data/multiclass/val/images/1b8d52cb603f71ad_jpg.rf.4a07f20828a6256402e5151e0db56e5d.jpg",
+        "input", nargs="*", default=["test_image.jpg"], help="image(s) to process"
     )
-    parser.add_argument("-t", "--target_directory", default=DEST_DIR)
+    parser.add_argument("-t", "--target_directory", default=DEST_DIR, help="save dir")
 
     if not DEST_DIR.exists():
         DEST_DIR.mkdir(parents=True)
 
+    parser.add_argument(
+        "-i", "--inpaint", action="store_true", help="Inpaint instead of blur"
+    )
+
     args = parser.parse_args()
 
-    input = Path(args.input)
+    # setting GAUSSIAN_BLUR to False makes the pipeline inpaint rather than blur
+    if args.inpaint:
+        GAUSSIAN_BLUR = False
+
+    input = [Path(path) for path in args.input]
     output_path = args.target_directory
     supported_types = [".jpg", ".png"]
 
-    # handle directory as input
-    # only iterates through files in directory itself:
-    # does not check subdirectories.
-    if input.is_dir():
-        for dir_item in input.iterdir():
-            if not dir_item.is_file():
-                continue
-            if dir_item.suffix not in supported_types:
-                continue
-            process_image(input, output_path)
-        quit()
+    for path in input:
+        # handle directory as input
+        # only iterates through files in directory itself:
+        # does not check subdirectories.
+        if path.is_dir():
+            for dir_item in path.iterdir():
+                if not dir_item.is_file():
+                    continue
+                if dir_item.suffix not in supported_types:
+                    continue
+                process_image(path, output_path)
+            continue
 
-    # handle single file input
-    if input.suffix not in supported_types:
-        raise ValueError(f"Unsupported file type: {input.suffix}")
-    process_image(input, output_path)
+        # handle single file path
+        if path.suffix not in supported_types:
+            raise ValueError(f"Unsupported file type: {path.suffix}")
+        process_image(path, output_path)

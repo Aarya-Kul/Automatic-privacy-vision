@@ -1,10 +1,12 @@
-# Data
+# Automatic Image Processing for Privacy
 
-## object classes
+## Data
+
+### object classes
 
 At present, the mapping from object classes to numerical labels is
 
-````json
+```json
 {
   "address": 0,
   "business_sign": 1,
@@ -15,8 +17,10 @@ At present, the mapping from object classes to numerical labels is
   "photo": 6,
   "street_name": 7
 }
+```
 
 Note that the mapping used to be
+
 ```json
 {
   "address": 0,
@@ -30,36 +34,46 @@ Note that the mapping used to be
   "photo": 8,
   "street_name": 9
 }
-````
+```
 
-## Data sources
+### Data sources
 
 Image were pulled from DIPA dataset and, selectively, from the Laion 400m dataset.
 About 400 images of house addressed were drawn from the
 [Stanford Street View House Numbers dataset] (<http://ufldl.stanford.edu/housenumbers/>).
 Images were annotated for segmentation with [Roboflow] (<https://app.roboflow.com>).
 
-## DIPA dataset
+### DIPA dataset
 
 To download the DIPA dataset, run the script
 seteup.sh in data/dipa.
 
 ## LLM setup
 
-# Install Ollama (you might need to install homebrew)
+### Install Ollama (you might need to install homebrew)
 
-brew install ollama
+On macOS run
 
-# (If needed) Fix PATH
+`brew install ollama`
 
+On Linux, install with
+
+`curl -fsSL https://ollama.com/install.sh | sh`
+
+### (If needed) Fix PATH
+
+```bash
 echo >> ~/.zprofile
 echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
+```
 
-# Start Ollama server
+### Start Ollama server
 
-ollama serve
+`ollama serve`
 
-# Download llama3 (only need to do this once, or if you want to manually use model)
+(If you want to shutdown Ollama server, run `sudo systemctl stop ollama`.)
 
-ollama run llama3
+### Download llama3 (only need to do this once, or if you want to manually use model)
+
+`ollama run llama3`
