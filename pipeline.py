@@ -15,6 +15,7 @@ DEST_DIR = Path("./pipeline_out")
 ## ALLOW USERS TO SET THESE
 MERGE_IOU_THRESHOLD = 0.3
 PRIVACY_SCORE_THRESHOLD = 0.5
+INPAINT_THRESHOLD = None
 GAUSSIAN_BLUR = True
 
 # model = YOLO("runs/yolo11s/weights/best.pt")
@@ -248,15 +249,26 @@ def blur_regions(image, region_tuples):
         if privacy_score > PRIVACY_SCORE_THRESHOLD:
             # select Gaussian blurring or inpainting
             # always uses blurring for faces
-            if GAUSSIAN_BLUR or YOLO_CLASSES[int(class_id)] == "face":
-                mask = np.zeros(image.shape[:2], dtype=np.uint8)
-                int_coords = np.array(poly.exterior.coords, dtype=np.int32)
-                cv2.fillPoly(mask, [int_coords], 255)
-                obfuscated = cv2.GaussianBlur(output, (31, 31), 0)
-                output[mask == 255] = obfuscated[mask == 255]
-            else:
+            # case where inpainting threshold is provided:
+            if (
+                INPAINT_THRESHOLD
+                and privacy_score > INPAINT_THRESHOLD
+                and YOLO_CLASSES[int(class_id)] == "face"
+            ):
                 int_coords = np.array(poly.exterior.coords, dtype=np.int32)
                 obfuscated = inpaint(output, [int_coords])
+                continue
+            # case where inpainting generally preferred over blurring
+            elif GAUSSIAN_BLUR is False and YOLO_CLASSES[int(class_id)] != "face":
+                int_coords = np.array(poly.exterior.coords, dtype=np.int32)
+                obfuscated = inpaint(output, [int_coords])
+                continue
+            # case where blurring is used
+            mask = np.zeros(image.shape[:2], dtype=np.uint8)
+            int_coords = np.array(poly.exterior.coords, dtype=np.int32)
+            cv2.fillPoly(mask, [int_coords], 255)
+            obfuscated = cv2.GaussianBlur(output, (31, 31), 0)
+            output[mask == 255] = obfuscated[mask == 255]
 
     return output
 
@@ -301,6 +313,8 @@ if __name__ == "__main__":
     Path for images to process can be a directory.
     Option -t <path> to specify save directory, defaults to {DEST_DIR}.
     Option -i to use inpainting instead of Gaussian blurring.
+    Option -p followed by one or two arguments: first argument is privacy score threshold,
+    second argument (if given) is privacy score threshold for inpainting.
     """
     parser = argparse.ArgumentParser(description=msg)
     parser.add_argument(
@@ -315,7 +329,25 @@ if __name__ == "__main__":
         "-i", "--inpaint", action="store_true", help="Inpaint instead of blur"
     )
 
+    parser.add_argument(
+        "-p",
+        "--pscore",
+        nargs="*",
+        help="Privacy score threshold, second arg if given is inpainting threshold",
+    )
+
     args = parser.parse_args()
+
+    if args.pscore and len(args.pscore) > 0:
+        PRIVACY_SCORE_THRESHOLD = float(args.pscore[0])
+        assert PRIVACY_SCORE_THRESHOLD >= 0 and PRIVACY_SCORE_THRESHOLD < 1, (
+            f"Invalid privacy score threshold: {PRIVACY_SCORE_THRESHOLD}"
+        )
+        if len(args.pscore) > 1:
+            INPAINT_THRESHOLD = float(args.pscore[1])
+            assert PRIVACY_SCORE_THRESHOLD >= 0 and PRIVACY_SCORE_THRESHOLD < 1, (
+                f"Invalid inpainting threshold: {INPAINT_THRESHOLD}"
+            )
 
     # setting GAUSSIAN_BLUR to False makes the pipeline inpaint rather than blur
     if args.inpaint:
