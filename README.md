@@ -1,5 +1,35 @@
 # Automatic Image Processing for Privacy
 
+## Pipeline
+
+To use the pipeline, run `python pipeline.py`.
+
+The simplest way to use the pipeline is with the default locations
+for input and output: put images to process in `./pipeline_in`,
+with the output by default in `./pipeline_out`. A specific image file,
+several image files, or one or more directories containing image files to
+process can be passed as positional arguments. (Note that the images
+in subdirectories will not be processed.) A specific output location
+can be passed with the option `-t <path>`.
+
+To set a privacy score threshold for obfuscation, use the option
+`-p <[0, 1)>`. If you additionally want to set a threshold for
+applying inpainting instead of blurring, pass a second argument to `-p`, e.g.
+`-p 0.3 0.5`.
+
+If you generally want to apply inpainting instead of blurring, simply
+use the `-i` option. Note that blurring will still be used for faces.
+
+### example usage
+
+The following will pull images from dir `debug_pipeline`, apply
+inpainting preferentially using the default privacy score threshold,
+and save to dir `debug_out`:
+
+```bash
+python pipeline.py debug_pipeline -i -t debug_out
+```
+
 ## Data
 
 ### object classes
