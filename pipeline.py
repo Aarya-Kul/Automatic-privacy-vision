@@ -317,7 +317,7 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser(description=msg)
     parser.add_argument(
-        "input", nargs="*", default=["test_image.jpg"], help="image(s) to process"
+        "input", nargs="*", default=["pipeline_in"], help="image(s) to process"
     )
     parser.add_argument("-t", "--target_directory", default=DEST_DIR, help="save dir")
 
