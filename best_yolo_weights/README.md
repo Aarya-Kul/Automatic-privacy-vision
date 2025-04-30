@@ -2,6 +2,7 @@
 
 Currently, these are weights from finetuning
 the pre-trained `yolo11s-seg.pt` model.
+For metrics, see `image_privacy/runs/lessaug_yolo11s`.
 
 # Hyperparameters
 
