@@ -3,3 +3,5 @@ opencv-python
 ultralytics
 easyocr
 shapely
+pillow
+simple-lama-inpainting
