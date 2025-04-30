@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from pathlib import Path
+from shutil import rmtree
 import argparse
 from ultralytics import YOLO
 import easyocr
@@ -17,6 +18,8 @@ MERGE_IOU_THRESHOLD = 0.3
 PRIVACY_SCORE_THRESHOLD = 0.5
 INPAINT_THRESHOLD = None
 GAUSSIAN_BLUR = True
+
+LOGGING_PATH = Path("log_pipeline.txt")
 
 # model = YOLO("runs/yolo11s/weights/best.pt")
 model = YOLO("best_yolo_weights/best.pt")
@@ -121,6 +124,11 @@ def call_llm_on_text(text, class_id):
         print(
             f"[Warning] Could not connect to Ollama or parse output. Using dummy score. (Reason: {e})"
         )
+        with open(LOGGING_PATH, "a") as f:
+            f.write(
+                f"[Warning] Could not connect to Ollama or parse output. Using dummy score. (Reason: {e})"
+                + "\n"
+            )
         return 0.5
 
 
@@ -130,11 +138,10 @@ def compute_privacy_score(poly, texts, image, class_id, counter: list):
 
     counter[-1] += 1
 
-    print(
-        f"\n=== IMAGE {len(counter)} OBJECT {counter[-1]}:",
-        class_name,
-        "===",
-    )
+    message = f"\n=== IMAGE {len(counter)} OBJECT {counter[-1]}: " + class_name + "==="
+
+    with open(LOGGING_PATH, "a") as f:
+        f.write(message + "\n")
 
     score = 0.0
     total_weight = 0.0
@@ -147,6 +154,8 @@ def compute_privacy_score(poly, texts, image, class_id, counter: list):
         if texts:
             conf_score = np.mean([conf for _, conf in texts])
             print("CONFIDENCE SCORE:", conf_score)
+            with open(LOGGING_PATH, "a") as f:
+                f.write("CONFIDENCE SCORE: " + str(conf_score) + "\n")
             score += weights["ocr_confidence"] * conf_score
             total_weight += weights["ocr_confidence"]
 
@@ -164,6 +173,8 @@ def compute_privacy_score(poly, texts, image, class_id, counter: list):
             lap_var = np.clip(lap_var, 0, 500)
             blur_score = min(1.0, lap_var / 500.0)
             print("BLUR SCORE:", blur_score)
+            with open(LOGGING_PATH, "a") as f:
+                f.write("BLUR SCORE: " + str(blur_score) + "\n")
             score += weights["blurriness"] * blur_score
             total_weight += weights["blurriness"]
 
@@ -171,6 +182,8 @@ def compute_privacy_score(poly, texts, image, class_id, counter: list):
             edges = cv2.Canny(gray_crop, 100, 200)
             complexity_score = min(1.0, np.mean(edges) / 255.0)
             print("COMPLEXITY SCORE:", complexity_score)
+            with open(LOGGING_PATH, "a") as f:
+                f.write("COMPEXITY SCORE: " + str(complexity_score) + "\n")
             score += weights["background_complexity"] * complexity_score
             total_weight += weights["background_complexity"]
 
@@ -182,23 +195,29 @@ def compute_privacy_score(poly, texts, image, class_id, counter: list):
         )
         center_focus_score = 1.0 - min(1.0, distance / (max(image.shape[:2]) / 2))
         print("CENTER FOCUS SCORE:", center_focus_score)
+        with open(LOGGING_PATH, "a") as f:
+            f.write("CENTER FOCUS SCORE: " + str(center_focus_score) + "\n")
         score += weights["center_focus"] * center_focus_score
         total_weight += weights["center_focus"]
 
     if "size" in weights:
         size_ratio = poly.area / (image.shape[0] * image.shape[1])
         print("SIZE RATIO:", size_ratio)
+        with open(LOGGING_PATH, "a") as f:
+            f.write("SIZE RATIO: " + str(size_ratio) + "\n")
         score += weights["size"] * min(1.0, size_ratio * 5)
         total_weight += weights["size"]
 
     if "llm" in weights:
         llm_score = call_llm_on_text([t for t, _ in texts], class_id) if texts else 0.0
         print("LLM SCORE:", llm_score)
+        with open(LOGGING_PATH, "a") as f:
+            f.write("LLM SCORE: " + str(llm_score) + "\n")
         score += weights["llm"] * llm_score
         total_weight += weights["llm"]
 
     return score
-    return score / total_weight if total_weight > 0 else 0.0
+    # return score / total_weight if total_weight > 0 else 0.0
 
 
 def get_mask_polygon(mask):
@@ -253,6 +272,8 @@ def blur_regions(image, region_tuples, counter: list):
             poly, texts, image, class_id, counter=counter
         )
         print("PRIVACY_SCORE:", privacy_score)
+        with open(LOGGING_PATH, "a") as f:
+            f.write("PRIVACY SCORE: " + str(privacy_score) + "\n")
 
         if privacy_score > PRIVACY_SCORE_THRESHOLD:
             # select Gaussian blurring or inpainting
@@ -286,7 +307,7 @@ def process_image(image_path, output_path, counter=[]):
     image = cv2.imread(image_path)
 
     # Step 1: YOLO Segmentation
-    yolo_results = model.predict(image_path, verbose=False)[0]
+    yolo_results = model.predict(image_path, verbose=False, save=True)[0]
     mask_polygons = []
     class_ids = []
     # conditional avoids throwing an error if there are no yolo predictions
@@ -313,9 +334,15 @@ def process_image(image_path, output_path, counter=[]):
     cv2.imwrite(str(output_filename), output_image)
 
     print(f"Processed image saved to: {output_path}")
+    with open(LOGGING_PATH, "a") as f:
+        f.write("Processed image saved to " + str(output_path) + "\n")
 
 
 if __name__ == "__main__":
+    # part of a workaround for yolo saving predictions to runs/segment
+    if Path("runs/sgment").exists():
+        rmtree(Path("runs/segment"))
+
     msg = f"""
     Takes a CL argument for the path to the image to process. 
     Path for images to process can be a directory.
@@ -385,7 +412,20 @@ if __name__ == "__main__":
             raise ValueError(f"Unsupported file type: {path.suffix}")
         process_image(path, output_path, counter=counter)
 
-        # note: can time this from CLI by running e.g.
-        # start=$(date +%s);
-        # python pipeline.py debug_pipeline -i -t debug_out; end=$(date +%s);
-        # duration=$((end - start)); echo "The script took $duration seconds to run."
+    # move yolo predictions from runs/segment to save dir
+    default_pred_dir = Path("runs/segment")
+    if default_pred_dir.exists():
+        new_pred_dir = Path(output_path / "yolo_predictions")
+        new_pred_dir.mkdir(parents=True, exist_ok=True)
+        for file in default_pred_dir.glob("predict*/*.jpg"):
+            file.rename(new_pred_dir / file.name)
+
+        print(f"Moving YOLO predictions to {new_pred_dir} and deleting runs/segment")
+        with open(LOGGING_PATH, "a") as f:
+            f.write(f"Saving YOLO predictions to {new_pred_dir}")
+        rmtree(default_pred_dir)
+
+    # note: can time this from CLI by running e.g.
+    # start=$(date +%s);
+    # python pipeline.py debug_pipeline -i -t debug_out; end=$(date +%s);
+    # duration=$((end - start)); echo "The script took $duration seconds to run."

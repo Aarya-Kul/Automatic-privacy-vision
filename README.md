@@ -20,6 +20,9 @@ applying inpainting instead of blurring, pass a second argument to `-p`, e.g.
 If you generally want to apply inpainting instead of blurring, simply
 use the `-i` option. Note that blurring will still be used for faces.
 
+Predictions from YOLO model are saved to the `<out>/yolo_predictions`,
+where `<out>` is the pipeline output directory (by default `./pipeline_out`).
+
 ### example usage
 
 The following will pull images from dir `debug_pipeline`, apply
