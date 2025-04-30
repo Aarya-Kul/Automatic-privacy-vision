@@ -290,7 +290,6 @@ def process_image(image_path, output_path):
                 mask_polygons.append(poly)
                 class_ids.append(class_id)
 
-    print(mask_polygons)
     ocr_results = ocr_reader.readtext(image)
 
     # Merge OCR results into segments, track texts
@@ -322,9 +321,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("-t", "--target_directory", default=DEST_DIR, help="save dir")
 
-    if not DEST_DIR.exists():
-        DEST_DIR.mkdir(parents=True)
-
     parser.add_argument(
         "-i", "--inpaint", action="store_true", help="Inpaint instead of blur"
     )
@@ -354,8 +350,11 @@ if __name__ == "__main__":
         GAUSSIAN_BLUR = False
 
     input = [Path(path) for path in args.input]
-    output_path = args.target_directory
+    output_path = Path(args.target_directory)
     supported_types = [".jpg", ".png"]
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
 
     for path in input:
         # handle directory as input
@@ -367,10 +366,15 @@ if __name__ == "__main__":
                     continue
                 if dir_item.suffix not in supported_types:
                     continue
-                process_image(path, output_path)
+                process_image(dir_item, output_path)
             continue
 
         # handle single file path
         if path.suffix not in supported_types:
             raise ValueError(f"Unsupported file type: {path.suffix}")
         process_image(path, output_path)
+
+        # note: can time this from CLI by running e.g.
+        # start=$(date +%s);
+        # python pipeline.py debug_pipeline -i -t debug_out; end=$(date +%s);
+        # duration=$((end - start)); echo "The script took $duration seconds to run."

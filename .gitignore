@@ -7,3 +7,5 @@ data/laion/
 .venv
 uv.lock
 pyproject.toml
+debug_pipeline
+debug_out
