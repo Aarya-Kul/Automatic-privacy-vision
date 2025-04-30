@@ -24,7 +24,7 @@ def load_contours(txt_file_path):
     return contours
 
 
-def inpaint(image: Image.Image, contours):
+def inpaint(image: Image.Image, contours) -> Image.Image:
     height, width, _ = np.array(image).shape
     # Create an empty mask
     mask = np.zeros((height, width), dtype=np.uint8)

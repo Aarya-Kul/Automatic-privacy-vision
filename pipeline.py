@@ -256,12 +256,12 @@ def blur_regions(image, region_tuples):
                 and YOLO_CLASSES[int(class_id)] == "face"
             ):
                 int_coords = np.array(poly.exterior.coords, dtype=np.int32)
-                obfuscated = inpaint(output, [int_coords])
+                output = np.asarray(inpaint(output, [int_coords]))  # type: ignore
                 continue
             # case where inpainting generally preferred over blurring
             elif GAUSSIAN_BLUR is False and YOLO_CLASSES[int(class_id)] != "face":
                 int_coords = np.array(poly.exterior.coords, dtype=np.int32)
-                obfuscated = inpaint(output, [int_coords])
+                output = np.asarray(inpaint(output, [int_coords]))  # type: ignore
                 continue
             # case where blurring is used
             mask = np.zeros(image.shape[:2], dtype=np.uint8)

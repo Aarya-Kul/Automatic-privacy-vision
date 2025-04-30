@@ -1,6 +1,0 @@
-=== OBJECT 1: personal_document ===
-CONFIDENCE SCORE: 0.8195609168777273
-SIZE RATIO: 0.361435546875
-LLM SCORE: 0.8
-PRIVACY_SCORE: 0.8839121833755456
-Processed image saved to: pipeline_out
