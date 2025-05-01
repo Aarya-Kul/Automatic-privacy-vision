@@ -44,4 +44,7 @@ requires a GPU.
 The evaluation data is the test set held out from training our YOLO model for object segmentation.
 We also avoided tuning the various parameters for privacy scoring with reference to this test set,
 to avoid cooking the books, so to speak, to make our application appear better than it is.
-We added some additional images that were useful test cases for what we want the application to do.
+The train-val-test split is 85-10-5 (1740, 199, and 97 images respectively),
+partitioned so as to have a proportional representation of each object class across the sets.
+We added some additional images to the test set
+that were useful test cases for what we want the application to do.
