@@ -5,10 +5,11 @@
 1. Obfuscate all license plates that are fully visible
 2. Obfuscate all business signs containing legible store names
 3. Obfuscate all addresses
-4. Obfuscate all street signs with street names
-5. Obfuscate all electronic screens displaying sensitive or private content (e.g., messages, emails)
+4. Obfuscate all street signs with street names, and other text identifying locations
+5. Obfuscate sensitive or private content (e.g., emails, social media) on electronic screens,
+   but not screens in general
 6. Obfuscate all personal documents and ID cards
-7. Ensure all group photos have identifiable faces obfuscated, while non-human elements are preserved
+7. Ensure all images have identifiable faces obfuscated, while non-human elements are preserved
 8. No obfuscation on irrelevant objects (e.g., tickets, random objects)
 
 In effect, 1. through 6. are about false negatives, and 7. is about false positives.
@@ -46,5 +47,59 @@ We also avoided tuning the various parameters for privacy scoring with reference
 to avoid cooking the books, so to speak, to make our application appear better than it is.
 The train-val-test split is 85-10-5 (1740, 199, and 97 images respectively),
 partitioned so as to have a proportional representation of each object class across the sets.
-We added some additional images to the test set
+We removed images that were not particular relevant to evaluation,
+and added some additional images to the test set
 that were useful test cases for what we want the application to do.
+In particular, we added images from
+[DocXPand-25k](https://arxiv.org/html/2407.20662v1#S3),
+which is large and diverse benchmark dataset for identity documents analysis,
+and [Su (2023), “Screen Detection YOLOv8”](https://data.mendeley.com/datasets/kp89xh68p2/1).
+
+After removing and adding images, the test set comes out to 103 images.
+
+## Eval ground truth
+
+| Criterion | Count |
+| \***\*\_\*\*** | **\_** |
+| 1 lic.pl. | 16 |
+| 2 bus.sn. | 21 |
+| 3 address | 21 |
+| 4 st.sn. | 13 |
+| 5 screens | 14 |
+| 6 docs | 17 |
+| 7 faces | 33 |
+
+1. Obfuscate all license plates that are fully visible
+2. Obfuscate all business signs containing legible store names
+3. Obfuscate all addresses
+4. Obfuscate all street signs with street names
+5. Obfuscate all electronic screens displaying sensitive or private content (e.g., messages, emails)
+6. Obfuscate all personal documents and ID cards
+7. Ensure all group photos have identifiable faces obfuscated, while non-human elements are preserved
+8. No obfuscation on irrelevant objects (e.g., tickets, random objects)
+
+## Application performance
+
+| Criterion | Count | Recall |
+| \***\*\_\*\*** | **\_** | **\_\_** |
+| 1 lic.pl. | 15 | # |
+| 2 bus.sn. | 18 | # |
+| 3 address | 13 | # |
+| 4 st.sn. | 8 | # |
+| 5 screens | 11 | # |
+| 6 docs | 11 | # |
+| 7 faces | 28 | # |
+| 8 FP | 15 | N/A |
+
+We seem to have successfully controlled the false positive rate
+(i.e. unwanted obfuscation) arising from completely haywire object detection.
+
+False positives we do have arise for two reasons:
+
+1. objects get we don't want to obscure that resemble objects we do want to obscure.
+   This is a failure of the YOLO model, e.g. mistaking signage for street signage.
+2. text that is wrongly scored as sensitive. This is a failure of the LLM and
+   our privacy scoring on the basis of the score produced by the LLM in conjunction
+   with other factors.
+
+A much larger proportion of the false positives come from 2.
