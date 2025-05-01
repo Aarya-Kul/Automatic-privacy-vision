@@ -69,15 +69,6 @@ After removing and adding images, the test set comes out to 103 images.
 | 6 docs    | 23    |
 | 7 faces   | 33    |
 
-1. Obfuscate all license plates that are fully visible
-2. Obfuscate all business signs containing legible store names
-3. Obfuscate all addresses
-4. Obfuscate all street signs with street names
-5. Obfuscate all electronic screens displaying sensitive or private content (e.g., messages, emails)
-6. Obfuscate all personal documents and ID cards
-7. Ensure all group photos have identifiable faces obfuscated, while non-human elements are preserved
-8. No obfuscation on irrelevant objects (e.g., tickets, random objects)
-
 ## Application performance
 
 | Criterion | Count | Accuracy |
