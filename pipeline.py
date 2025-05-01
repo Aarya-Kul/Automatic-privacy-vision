@@ -19,6 +19,9 @@ PRIVACY_SCORE_THRESHOLD = 0.5
 INPAINT_THRESHOLD = None
 GAUSSIAN_BLUR = True
 
+# applying custom YOLO confidence threshold to nonfaces
+YOLO_CONF_NONFACE = 0.4
+
 LOGGING_PATH = Path("log_pipeline.txt")
 
 # model = YOLO("runs/yolo11s/weights/best.pt")
@@ -132,16 +135,24 @@ def call_llm_on_text(text, class_id):
         return 0.5
 
 
-def compute_privacy_score(poly, texts, image, class_id, counter: list):
+def compute_privacy_score(poly, texts, image, class_id, counter: list, filename=None):
     class_name = YOLO_CLASSES[int(class_id)]
     weights = CLASS_FEATURE_WEIGHTS.get(class_name, {})
 
     counter[-1] += 1
 
     message = f"\n=== IMAGE {len(counter)} OBJECT {counter[-1]}: " + class_name + "==="
+    print(message)
 
     with open(LOGGING_PATH, "a") as f:
         f.write(message + "\n")
+
+    if filename:
+        if isinstance(filename, Path):
+            filename = filename.name
+        with open(LOGGING_PATH, "a") as f:
+            f.write(f"file: {filename}" + "\n")
+        print(f"file: {filename}")
 
     score = 0.0
     total_weight = 0.0
@@ -261,7 +272,7 @@ def union_segments_and_boxes(mask_polygons, ocr_results, class_ids):
     return updated_polygons
 
 
-def blur_regions(image, region_tuples, counter: list):
+def blur_regions(image, region_tuples, counter: list, filename=None):
     output = image.copy()
     for (poly, texts), class_id in region_tuples:
         if not poly.is_valid:
@@ -269,7 +280,7 @@ def blur_regions(image, region_tuples, counter: list):
 
         # texts is a list of words OCR picked out within the mask region
         privacy_score = compute_privacy_score(
-            poly, texts, image, class_id, counter=counter
+            poly, texts, image, class_id, counter=counter, filename=filename
         )
         print("PRIVACY_SCORE:", privacy_score)
         with open(LOGGING_PATH, "a") as f:
@@ -314,7 +325,16 @@ def process_image(image_path, output_path, counter=[]):
     if yolo_results:
         assert yolo_results.masks, f"issue with yolo_results: {yolo_results}"
         assert yolo_results.boxes, f"issue with yolo_results: {yolo_results}"
-        for seg, class_id in zip(yolo_results.masks.xy, yolo_results.boxes.cls):
+        for seg, class_id, conf_score in zip(
+            yolo_results.masks.xy, yolo_results.boxes.cls, yolo_results.boxes.conf
+        ):
+            # the point of taking conf scores here is to skip anything with conf score <= 0.4
+            # unless it's a face, to control the false positive rate (for faces, the appropriate threshold is
+            # around YOLO's default of 0.25)
+            conf = float(conf_score.max())
+            # max taken because one object may have multiple scores for different keypoints
+            if YOLO_CLASSES[int(class_id)] != "face" and conf <= YOLO_CONF_NONFACE:
+                continue
             poly = Polygon(seg)
             if poly.is_valid:
                 mask_polygons.append(poly)
@@ -328,7 +348,9 @@ def process_image(image_path, output_path, counter=[]):
     )
 
     # Blur only if sensitive
-    output_image = blur_regions(image, merged_regions_with_texts, counter)
+    output_image = blur_regions(
+        image, merged_regions_with_texts, counter, filename=image_path
+    )
 
     output_filename = output_path / (image_path.stem + "_blurred" + image_path.suffix)
     cv2.imwrite(str(output_filename), output_image)
