@@ -80,7 +80,7 @@ After removing and adding images, the test set comes out to 103 images.
 | 5 screens |  11   |  0.7857  |
 |  6 docs   |  19   |  0.8261  |
 |  7 faces  |  28   |  0.8484  |
-|   8 FP    |  15   |   N/A    |
+|   8 FP    |  16   |   N/A    |
 
 ## False negatives
 
@@ -114,4 +114,5 @@ False positives we do have arise for two reasons:
    our privacy scoring on the basis of the score produced by the LLM in conjunction
    with other factors.
 
-A much larger proportion of the false positives come from 2.
+A larger proportion of the false positives come from 2. Specifically, 12 false positives were primarily due to the privacy scoring of text
+using OCR and Llama3, vs. 4 from mistakes made by YOLO in conjunction with privacy scoring.
