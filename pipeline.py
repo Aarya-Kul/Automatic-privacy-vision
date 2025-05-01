@@ -20,7 +20,7 @@ INPAINT_THRESHOLD = None
 GAUSSIAN_BLUR = True
 
 # applying custom YOLO confidence threshold to nonfaces
-YOLO_CONF_NONFACE = 0.4
+YOLO_CONF_NONFACE = 0.4  # if <= 0.25 (default yolo threshold), this will have no effect
 
 LOGGING_PATH = Path("log_pipeline.txt")
 
@@ -107,7 +107,9 @@ def call_llm_on_text(text, class_id):
         Region class: {YOLO_CLASSES[int(class_id)]}
         Detected text: {text}
 
-        Output a single number between 0.0 (completely non-sensitive text) and 1.0 (extremely private information text) with regards to the class.
+        Output a single number between 0.0 (completely non-sensitive text) and 1.0 (extremely private information text) with regards to the class. 
+        This number should be 1.0 or close to 1.0 if the text identifies a person or place, 
+        and if the text contains passwords, numerical ids, or financial information. 
         Only output the number, nothing else.
         """
     try:
@@ -163,6 +165,12 @@ def compute_privacy_score(poly, texts, image, class_id, counter: list, filename=
 
     if "ocr_confidence" in weights:
         if texts:
+            text_info = "\n".join(
+                [f'text: "{text_object[0]}"' for text_object in texts]
+            )
+            print(text_info)
+            with open(LOGGING_PATH, "a") as f:
+                f.write(text_info + "\n")
             conf_score = np.mean([conf for _, conf in texts])
             print("CONFIDENCE SCORE:", conf_score)
             with open(LOGGING_PATH, "a") as f:
