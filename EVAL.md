@@ -60,14 +60,14 @@ After removing and adding images, the test set comes out to 103 images.
 ## Eval ground truth
 
 | Criterion | Count |
-| \***\*\_\*\*** | **\_** |
-| 1 lic.pl. | 16 |
-| 2 bus.sn. | 21 |
-| 3 address | 21 |
-| 4 st.sn. | 13 |
-| 5 screens | 14 |
-| 6 docs | 23 |
-| 7 faces | 33 |
+| --------- | ----- |
+| 1 lic.pl. | 16    |
+| 2 bus.sn. | 21    |
+| 3 address | 21    |
+| 4 st.sn.  | 13    |
+| 5 screens | 14    |
+| 6 docs    | 23    |
+| 7 faces   | 33    |
 
 1. Obfuscate all license plates that are fully visible
 2. Obfuscate all business signs containing legible store names
@@ -81,15 +81,15 @@ After removing and adding images, the test set comes out to 103 images.
 ## Application performance
 
 | Criterion | Count | Accuracy |
-| \***\*\_\*\*** | **\_** | **\_\_** |
-| 1 lic.pl. | 15 | 0.9375 |
-| 2 bus.sn. | 18 | 0.8571 |
-| 3 address | 19 | 0.9048 |
-| 4 st.sn. | 8 | 0.6154 |
-| 5 screens | 11 | 0.7857 |
-| 6 docs | 19 | 0.8261 |
-| 7 faces | 28 | 0.8484 |
-| 8 FP | 15 | N/A |
+| :-------: | :---: | :------: |
+| 1 lic.pl. |  15   |  0.9375  |
+| 2 bus.sn. |  18   |  0.8571  |
+| 3 address |  19   |  0.9048  |
+| 4 st.sn.  |   8   |  0.6154  |
+| 5 screens |  11   |  0.7857  |
+|  6 docs   |  19   |  0.8261  |
+|  7 faces  |  28   |  0.8484  |
+|   8 FP    |  15   |   N/A    |
 
 ## False negatives
 
