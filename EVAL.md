@@ -66,7 +66,7 @@ After removing and adding images, the test set comes out to 103 images.
 | 3 address | 21 |
 | 4 st.sn. | 13 |
 | 5 screens | 14 |
-| 6 docs | 17 |
+| 6 docs | 23 |
 | 7 faces | 33 |
 
 1. Obfuscate all license plates that are fully visible
@@ -80,16 +80,37 @@ After removing and adding images, the test set comes out to 103 images.
 
 ## Application performance
 
-| Criterion | Count | Recall |
+| Criterion | Count | Accuracy |
 | \***\*\_\*\*** | **\_** | **\_\_** |
-| 1 lic.pl. | 15 | # |
-| 2 bus.sn. | 18 | # |
-| 3 address | 13 | # |
-| 4 st.sn. | 8 | # |
-| 5 screens | 11 | # |
-| 6 docs | 11 | # |
-| 7 faces | 28 | # |
+| 1 lic.pl. | 15 | 0.9375 |
+| 2 bus.sn. | 18 | 0.8571 |
+| 3 address | 19 | 0.9048 |
+| 4 st.sn. | 8 | 0.6154 |
+| 5 screens | 11 | 0.7857 |
+| 6 docs | 19 | 0.8261 |
+| 7 faces | 28 | 0.8484 |
 | 8 FP | 15 | N/A |
+
+## False negatives
+
+The small size of the dataset means there is significant variance, but some things
+are clear enough, especially when the images involved are considered.
+Some false negatives are clearly because of challenging images. For instance,
+the relatively low performance for street signs (especially when compared to
+metrics for the YOLO model itself) is largely due to the presence of a black
+and white image containing several street signs.
+In other cases, false negatives are due to something being amiss with our
+privacy scoring. In particular, some of the faces missed by the application
+were detected with high confidence by the YOLO model itself, which points
+in the direction of our privacy scoring.
+
+One significant kind of false negative reflected in these metrics
+is cases where application obscures a photo id save for the picture
+of the person's face. This seems to mainly be due to the quirks of our
+privacy scoring for photos. To capture this, we counted any photo id as 2 objects,
+one for the photo and one for the text of the document.
+
+## False positives
 
 We seem to have successfully controlled the false positive rate
 (i.e. unwanted obfuscation) arising from completely haywire object detection.

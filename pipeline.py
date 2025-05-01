@@ -1,4 +1,5 @@
 import cv2
+import codecs
 import numpy as np
 from pathlib import Path
 from shutil import rmtree
@@ -46,7 +47,7 @@ YOLO_CLASSES = [
 ]
 
 CLASS_FEATURE_WEIGHTS = {
-    "address": {"ocr_confidence": 0.4, "size": 0.2, "center_focus": 0.2, "base": 0.2},
+    "address": {"ocr_confidence": 0.4, "size": 0.2, "center_focus": 0.2, "base": 0.4},
     "advertisement": {
         "llm": 0.3,
         "ocr_confidence": 0.3,
@@ -169,7 +170,7 @@ def compute_privacy_score(poly, texts, image, class_id, counter: list, filename=
                 [f'text: "{text_object[0]}"' for text_object in texts]
             )
             print(text_info)
-            with open(LOGGING_PATH, "a") as f:
+            with codecs.open(str(LOGGING_PATH), "a", "utf-8") as f:
                 f.write(text_info + "\n")
             conf_score = np.mean([conf for _, conf in texts])
             print("CONFIDENCE SCORE:", conf_score)
@@ -316,7 +317,7 @@ def blur_regions(image, region_tuples, counter: list, filename=None):
             int_coords = np.array(poly.exterior.coords, dtype=np.int32)
             cv2.fillPoly(mask, [int_coords], 255)
             obfuscated = cv2.GaussianBlur(
-                output, (71, 71), 0
+                output, (51, 51), 0
             )  # kernel size changed from (31, 31) since some text was still legible
             output[mask == 255] = obfuscated[mask == 255]
 
