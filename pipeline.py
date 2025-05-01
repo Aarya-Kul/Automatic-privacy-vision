@@ -315,7 +315,9 @@ def blur_regions(image, region_tuples, counter: list, filename=None):
             mask = np.zeros(image.shape[:2], dtype=np.uint8)
             int_coords = np.array(poly.exterior.coords, dtype=np.int32)
             cv2.fillPoly(mask, [int_coords], 255)
-            obfuscated = cv2.GaussianBlur(output, (31, 31), 0)
+            obfuscated = cv2.GaussianBlur(
+                output, (71, 71), 0
+            )  # kernel size changed from (31, 31) since some text was still legible
             output[mask == 255] = obfuscated[mask == 255]
 
     return output
